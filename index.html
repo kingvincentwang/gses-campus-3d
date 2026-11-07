@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>關西國小 3D 校園導覽</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=LXGW+WenKai+TC:wght@400;700&family=Noto+Sans+TC:wght@400;500;700&display=swap">
+<style>
+/* 版面：全螢幕 3D 校園模型為主體，左側地點清單、右側資訊卡、下方工具列浮在模型上 */
+:root{
+  --bg:#eef1ec;          /* 頁面底色（帶一點茶綠的灰） */
+  --panel:#fbfcf9f2;     /* 浮動面板 */
+  --panel-solid:#fbfcf9;
+  --fg:#1f2a24;          /* 主要文字 */
+  --muted:#5d6b62;       /* 次要文字 */
+  --line:#d5ddd5;        /* 分隔線 */
+  --accent:#2f6b4f;      /* 茶園綠：主要按鈕、選取 */
+  --accent-fg:#ffffff;
+  --accent-soft:#e1eee6;
+  --pin:#c4452f;         /* 紅磚色：360 地點 */
+  --track:#7a5a8c;       /* 跑道紫，作為第二色 */
+  --sky:#cfe0e6;         /* 3D 天空 */
+  --shadow:0 6px 24px rgba(20,40,30,.14);
+  --font-display:"LXGW WenKai TC","Noto Sans TC","PingFang TC","Microsoft JhengHei",serif;
+  --font-body:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#121815;--panel:#1a221ef2;--panel-solid:#1a221e;--fg:#e6ece7;--muted:#9aa89f;--line:#2e3a33;
+    --accent:#6fbf94;--accent-fg:#0d1a13;--accent-soft:#223a2d;--pin:#ef7a5f;--track:#b596c7;--sky:#2a3a44;
+    --shadow:0 6px 24px rgba(0,0,0,.45);color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#121815;--panel:#1a221ef2;--panel-solid:#1a221e;--fg:#e6ece7;--muted:#9aa89f;--line:#2e3a33;
+  --accent:#6fbf94;--accent-fg:#0d1a13;--accent-soft:#223a2d;--pin:#ef7a5f;--track:#b596c7;--sky:#2a3a44;
+  --shadow:0 6px 24px rgba(0,0,0,.45);color-scheme:dark;
+}
+[hidden]{display:none!important}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--fg);font-family:var(--font-body);font-size:14px;overflow:hidden;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+#stage{position:fixed;inset:0}
+#stage canvas{display:block;touch-action:none}
+#labels{position:fixed;inset:0;pointer-events:none}
+
+/* 3D 建築標籤 */
+.blabel{font-family:var(--font-display);font-size:15px;font-weight:700;color:#1f2a24;background:#ffffffe6;border:1px solid #c9d3cb;
+  padding:3px 9px 3px 8px;border-radius:4px;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.15);pointer-events:auto;cursor:pointer;line-height:1.3}
+.blabel small{font-family:var(--font-body);font-weight:500;font-size:11px;color:#5d6b62;margin-left:4px}
+.blabel .rooms{display:block;font-family:var(--font-body);font-weight:400;font-size:11.5px;color:#33423a;max-width:200px;white-space:normal}
+.blabel.minor{font-size:12px;font-weight:400;background:#ffffffc0;padding:1px 6px}
+.blabel.on{background:#2f6b4f;color:#fff;border-color:#2f6b4f}
+.blabel.on small,.blabel.on .rooms{color:#e1eee6}
+
+/* 浮動元件共用 */
+.float{position:fixed;background:var(--panel);border:1px solid var(--line);box-shadow:var(--shadow);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border-radius:10px}
+
+.brand{top:calc(12px + env(safe-area-inset-top,0px));left:max(12px,env(safe-area-inset-left,0px));padding:10px 14px 9px;display:flex;gap:10px;align-items:center}
+.brand .seal{width:34px;height:34px;border-radius:50%;background:var(--accent);color:var(--accent-fg);display:grid;place-items:center;font-family:var(--font-display);font-size:17px;font-weight:700;flex:none}
+.brand h1{margin:0;font-family:var(--font-display);font-size:19px;letter-spacing:.04em;line-height:1.15;text-wrap:balance}
+.brand p{margin:2px 0 0;color:var(--muted);font-size:12px}
+
+#side{top:calc(78px + env(safe-area-inset-top,0px));left:max(12px,env(safe-area-inset-left,0px));bottom:calc(84px + env(safe-area-inset-bottom,0px));width:276px;display:flex;flex-direction:column;overflow:hidden}
+.tabs{display:flex;border-bottom:1px solid var(--line)}
+.tabs button{flex:1;background:none;border:0;padding:10px 0 9px;font-weight:500;color:var(--muted);border-bottom:2px solid transparent}
+.tabs button[aria-selected="true"]{color:var(--fg);border-bottom-color:var(--accent)}
+.search{padding:10px 12px 6px}
+.search input{width:100%;box-sizing:border-box;padding:7px 10px;border:1px solid var(--line);border-radius:6px;background:var(--panel-solid);color:var(--fg);font:inherit}
+.list{overflow:auto;padding:4px 6px 12px;flex:1;min-height:0}
+.grp{margin:10px 8px 4px;font-size:11.5px;letter-spacing:.12em;color:var(--muted);font-weight:700}
+.item{display:flex;align-items:center;gap:9px;width:100%;text-align:left;background:none;border:0;border-radius:6px;padding:6px 8px;line-height:1.35}
+.item:hover{background:var(--accent-soft)}
+.item.on{background:var(--accent);color:var(--accent-fg)}
+.item .dot{width:9px;height:9px;border-radius:50%;background:var(--pin);flex:none;box-shadow:0 0 0 2px var(--panel-solid)}
+.item .fl{margin-left:auto;font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+.item.on .fl{color:inherit;opacity:.85}
+.item .bsw{width:12px;height:12px;border-radius:2px;flex:none;border:1px solid #0002}
+
+#card{top:calc(12px + env(safe-area-inset-top,0px));right:max(12px,env(safe-area-inset-right,0px));width:330px;max-height:calc(100% - 120px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));overflow:auto;padding:16px 16px 14px}
+#card .eyebrow{font-size:11.5px;letter-spacing:.14em;color:var(--pin);font-weight:700}
+#card h2{margin:4px 0 6px;font-family:var(--font-display);font-size:24px;line-height:1.2;text-wrap:balance}
+#card .meta{color:var(--muted);font-size:12.5px;margin-bottom:10px}
+#card .x{position:absolute;top:8px;right:8px;border:0;background:none;width:30px;height:30px;border-radius:6px;font-size:18px;color:var(--muted)}
+#card .x:hover{background:var(--accent-soft)}
+.facts{margin:0 0 12px;padding:0;list-style:none;display:grid;gap:8px}
+.facts li{border-left:3px solid var(--line);padding:1px 0 1px 10px}
+.facts b{display:block;font-size:12.5px}
+.facts span{font-size:13px;color:var(--muted)}
+.floors{display:grid;gap:6px;margin:0 0 12px}
+.floorrow{display:grid;grid-template-columns:38px 1fr;gap:8px;align-items:start;background:none;border:1px solid var(--line);border-radius:6px;padding:7px 9px;text-align:left}
+.floorrow:hover{border-color:var(--accent)}
+.floorrow b{font-variant-numeric:tabular-nums;color:var(--accent)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 14px}
+.chip{border:1px solid var(--line);background:var(--panel-solid);border-radius:999px;padding:4px 10px;font-size:12.5px}
+.chip:hover{border-color:var(--accent);color:var(--accent)}
+.sub{font-size:12px;color:var(--muted);margin:0 0 6px;font-weight:500}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid var(--line);background:var(--panel-solid);border-radius:7px;padding:8px 12px;font-weight:500;text-decoration:none;color:var(--fg)}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+.btn.primary:hover{filter:brightness(1.08)}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+.welcome p{margin:0 0 10px;line-height:1.65}
+.legend{display:grid;grid-template-columns:auto 1fr;gap:6px 10px;font-size:12.5px;margin:4px 0 14px;align-items:center}
+.legend i{display:inline-block;width:14px;height:14px;border-radius:3px}
+
+#dock{left:50%;transform:translateX(-50%);bottom:calc(14px + env(safe-area-inset-bottom,0px));display:flex;gap:4px;align-items:center;padding:6px;max-width:calc(100% - 24px);box-sizing:border-box;flex-wrap:wrap;justify-content:center}
+#dock .sep{width:1px;height:24px;background:var(--line);margin:0 4px}
+#dock button{border:0;background:none;border-radius:6px;padding:7px 10px;font-weight:500;white-space:nowrap}
+#dock button:hover{background:var(--accent-soft)}
+#dock button[aria-pressed="true"]{background:var(--accent);color:var(--accent-fg)}
+#dock .lbl{font-size:12px;color:var(--muted);padding:0 4px 0 6px}
+
+#compass{top:calc(12px + env(safe-area-inset-top,0px));right:calc(354px + env(safe-area-inset-right,0px));width:44px;height:44px;border-radius:50%;display:grid;place-items:center;padding:0;border:1px solid var(--line)}
+#compass svg{width:34px;height:34px}
+
+#tip{position:fixed;pointer-events:none;background:var(--panel-solid);color:var(--fg);border:1px solid var(--line);box-shadow:var(--shadow);border-radius:6px;padding:5px 9px;font-size:13px;white-space:nowrap;transform:translate(-50%,-130%);z-index:5}
+#tip small{color:var(--muted);margin-left:6px}
+
+#tourbar{left:50%;transform:translateX(-50%);bottom:calc(72px + env(safe-area-inset-bottom,0px));padding:8px 10px 8px 14px;display:flex;gap:10px;align-items:center;font-size:13px}
+#tourbar .prog{font-variant-numeric:tabular-nums;color:var(--muted)}
+
+#menuBtn{display:none}
+
+/* 360 環景 */
+#pano-wrap{position:fixed;inset:0;z-index:20;background:#0b0f0d}
+#pano{position:absolute;inset:0}
+.pano-top{position:absolute;top:0;left:0;right:0;padding:calc(10px + env(safe-area-inset-top,0px)) max(12px,env(safe-area-inset-right,0px)) 10px max(12px,env(safe-area-inset-left,0px));display:flex;gap:10px;align-items:center;background:linear-gradient(#000a,#0000);color:#fff;z-index:2}
+.pano-top h3{margin:0;font-family:var(--font-display);font-size:21px;font-weight:700;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pano-top .pbtn{border:1px solid #ffffff55;background:#00000055;color:#fff;border-radius:7px;padding:7px 12px;white-space:nowrap}
+.pano-top .pbtn:hover{background:#ffffff22}
+.pano-top .pbtn[aria-pressed="true"]{background:#ffffff33}
+.hs-link{width:56px;height:56px;margin:-28px 0 0 -28px;cursor:pointer;position:relative}
+.hs-link .arrow{width:56px;height:56px;border-radius:50%;background:#ffffffd9;display:grid;place-items:center;box-shadow:0 2px 10px #0006;transition:transform .15s}
+.hs-link:hover .arrow{transform:scale(1.1)}
+.hs-link .arrow svg{width:30px;height:30px}
+.hs-link .name{position:absolute;top:62px;left:50%;transform:translateX(-50%);background:#000b;color:#fff;font-size:13px;padding:3px 8px;border-radius:4px;white-space:nowrap}
+.hs-info{position:relative;margin:-17px 0 0 -17px;cursor:pointer;max-width:260px}
+.hs-info .head{display:flex;align-items:center;gap:8px;background:#2f6b4fe6;color:#fff;border-radius:18px;padding:0 12px 0 0;height:34px;font-size:13.5px;white-space:nowrap;box-shadow:0 2px 8px #0005}
+.hs-info .head i{width:34px;height:34px;border-radius:50%;background:#1f4a36;display:grid;place-items:center;font-style:normal;font-weight:700;font-family:Georgia,serif}
+.hs-info .body{display:none;background:#fffffff2;color:#1f2a24;margin-top:4px;border-radius:8px;padding:8px 10px;font-size:13px;line-height:1.6;white-space:normal;width:240px}
+.hs-info.open .body{display:block}
+.pano-fail{position:absolute;inset:0;display:grid;place-items:center;padding:24px;color:#e6ece7;text-align:center}
+.pano-fail div{max-width:420px;line-height:1.7}
+.pano-fail a{color:#8fd6ae}
+
+@media (max-width:820px){
+  #side{display:none;top:calc(70px + env(safe-area-inset-top,0px));width:auto;right:max(12px,env(safe-area-inset-right,0px));bottom:calc(120px + env(safe-area-inset-bottom,0px));z-index:6}
+  body.menu-open #side{display:flex}
+  #menuBtn{display:inline-flex}
+  .brand{right:max(12px,env(safe-area-inset-right,0px));padding:8px 10px}
+  .brand h1{font-size:17px}
+  .brand p{display:none}
+  #card{top:auto;left:max(12px,env(safe-area-inset-left,0px));right:max(12px,env(safe-area-inset-right,0px));width:auto;bottom:calc(112px + env(safe-area-inset-bottom,0px));max-height:42%;z-index:7}
+  #compass{top:calc(70px + env(safe-area-inset-top,0px));right:max(12px,env(safe-area-inset-right,0px))}
+  #dock{bottom:calc(10px + env(safe-area-inset-bottom,0px))}
+  #dock .lbl{display:none}
+  #dock button{padding:7px 8px}
+  #tourbar{bottom:calc(112px + env(safe-area-inset-bottom,0px))}
+  body.card-open #tourbar{display:none}
+}
+@media (prefers-reduced-motion:reduce){.hs-link .arrow{transition:none}}
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<div id="labels"></div>
+
+<div class="float brand">
+  <div class="seal" aria-hidden="true">關</div>
+  <div>
+    <h1>關西國小 3D 校園導覽</h1>
+    <p>新竹縣關西鎮 · 依衛星影像繪製的示意模型</p>
+  </div>
+</div>
+
+<button id="compass" class="float" title="朝北重置" aria-label="朝北重置視角">
+  <svg viewBox="0 0 40 40" aria-hidden="true"><g id="needle"><path d="M20 4 L25 20 L20 17 L15 20Z" fill="#c4452f"/><path d="M20 36 L25 20 L20 23 L15 20Z" fill="#8a948e"/></g><text x="20" y="13" text-anchor="middle" font-size="0">N</text></svg>
+</button>
+
+<aside id="side" class="float" aria-label="地點與建築清單">
+  <div class="tabs" role="tablist">
+    <button role="tab" id="tab-spots" aria-selected="true">360° 地點</button>
+    <button role="tab" id="tab-bld" aria-selected="false">建築與樓層</button>
+  </div>
+  <div class="search"><input id="q" type="search" placeholder="搜尋：班級、處室、地點…" aria-label="搜尋"></div>
+  <div class="list" id="list"></div>
+</aside>
+
+<section id="card" class="float" aria-live="polite"></section>
+
+<div id="tourbar" class="float" hidden>
+  <span>導覽中</span><span class="prog" id="tourProg"></span>
+  <button class="btn" id="tourPrev">上一站</button>
+  <button class="btn" id="tourNext">下一站</button>
+  <button class="btn" id="tourStop">結束</button>
+</div>
+
+<nav id="dock" class="float" aria-label="檢視工具">
+  <button id="menuBtn" aria-label="開啟清單">清單</button>
+  <span class="lbl">樓層</span>
+  <button data-floor="0" aria-pressed="true">全部</button>
+  <button data-floor="1" aria-pressed="false">1F</button>
+  <button data-floor="2" aria-pressed="false">2F</button>
+  <button data-floor="3" aria-pressed="false">3F</button>
+  <button data-floor="4" aria-pressed="false">4F</button>
+  <span class="sep"></span>
+  <button id="viewBird">鳥瞰</button>
+  <button id="viewTop">俯視</button>
+  <button id="spin" aria-pressed="false">旋轉</button>
+  <span class="sep"></span>
+  <button id="tourBtn">開始導覽</button>
+</nav>
+
+<div id="tip" hidden></div>
+
+<div id="pano-wrap" hidden>
+  <div id="pano"></div>
+  <div class="pano-top">
+    <button class="pbtn" id="panoBack">← 回 3D 地圖</button>
+    <h3 id="panoTitle"></h3>
+    <button class="pbtn" id="panoRotate" aria-pressed="false">自動轉</button>
+  </div>
+</div>
+
+<script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+
+/* ================== 資料 ==================
+   座標使用衛星截圖的像素 (px, py)，1 px ≈ 0.55 公尺。
+   想微調建築或地點位置時，直接修改下面的像素數字即可。 */
+const S = 0.55, OX = 1060, OY = 460, FH = 3.6;
+const P = (px, py) => [(px - OX) * S, (py - OY) * S];
+const PANO_BASE = 'https://kingvincentwang.github.io/360school/';
+const SITE_360 = PANO_BASE;
+const EARTH_URL = 'https://earth.google.com/web/search/%e6%96%b0%e7%ab%b9%e7%b8%a3%e9%97%9c%e8%a5%bf%e5%9c%8b%e5%b0%8f/@24.79294308,121.17450517,142.95968181a,925.98514531d,35y,0h,0t,0r';
+const SCENES = [{"id":"0-","name":"校門口圓環","v":[-3.055,0.029],"links":[["9-",2.95,0.059]],"infos":[]},{"id":"1-","name":"一棟一樓中間走廊","v":[-1.682,0],"links":[["4-",0.115,-0.177],["3-",1.558,0.086],["15-",-3.054,0.063],["9-",-1.486,0.057],["21-",-2.301,0],["32-",2.837,0.046]],"infos":[[1.969,-0.119,"第一棟大樓一樓左側","一年甲班、一年乙班、一年丙班"]]},{"id":"2-","name":"一棟一樓右側走廊","v":[0.248,0.003],"links":[["9-",-0.003,0.027],["11-",1.6,0.115],["5-",-2.953,0.092],["21-",0.716,-0.002]],"infos":[[1.601,-0.023,"第四棟大樓一樓","總務處、智慧教室、科任辦公室"]]},{"id":"3-","name":"一棟一樓左側走廊","v":[0.103,0.134],"links":[["30-",-2.771,0.121],["6-",-3.086,0.11],["1-",0.064,0.121],["32-",-0.518,-0.011]],"infos":[]},{"id":"4-","name":"一棟二樓中間","v":[-1.677,0.07],"links":[["5-",-1.576,-0.027],["23-",-3.045,0.066],["6-",1.601,0.092],["1-",-0.095,0.123],["8-",0.251,-0.173]],"infos":[[-2.693,-0.305,"文化走廊","連接第一二三棟大樓二樓"],[-1.315,-0.125,"第一棟大樓二樓右側","校長室、四年丁班"],[1.934,-0.076,"第一棟大樓二樓左側","二年甲班、二年乙班、二年丙班"]]},{"id":"5-","name":"一棟二樓右側走廊","v":[-0.156,0.084],"links":[["4-",-0.053,0.09],["2-",-3.127,0.198],["12-",1.487,0.076],["7-",3.138,-0.043]],"infos":[[1.892,-0.11,"第四棟大樓二樓","人事主計辦公室、諮商室、資源班2、資源班1"]]},{"id":"6-","name":"一棟二樓左側","v":[0,0],"links":[["3-",-0.432,0.177],["4-",3.108,0.185]],"infos":[]},{"id":"7-","name":"一棟三樓右側","v":[0.064,0.024],"links":[["8-",-0.01,0.014],["13-",1.573,0.029],["5-",-2.995,0.109]],"infos":[[0.407,-0.218,"第一棟大樓三樓","三年甲班、三年乙班、三年丙班"],[1.861,-0.149,"第四棟大樓三樓","特教巡迴班"]]},{"id":"8-","name":"一棟三樓左側","v":[-2.836,0.074],"links":[["4-",-1.663,0.147],["7-",-3.071,0.036]],"infos":[[-2.912,-0.21,"第一棟大樓三樓","三年丙班、三年乙班、三年甲班"]]},{"id":"9-","name":"中廊","v":[0,0],"links":[["0-",1.406,0.084],["1-",-2.742,0.075],["21-",-1.434,0.059],["2-",-0.497,-0.008]],"infos":[]},{"id":"10-","name":"二三棟間溜滑梯","v":[2.899,0.001],"links":[["32-",2.899,0.052],["15-",-2.658,0.025],["14-",-1.601,0.012],["11-",0.088,0.002]],"infos":[]},{"id":"11-","name":"二四棟一樓交接","v":[1.735,0.11],"links":[["2-",1.546,0.168],["12-",-0.191,0.108],["21-",2.142,0.168],["32-",-3.101,0.062],["10-",0.01,-0.009]],"infos":[[-2.614,-0.136,"第三棟大樓一樓","特教班、知動教室、教師休息室、健康中心"]]},{"id":"12-","name":"二四棟二樓交接","v":[0,0],"links":[["23-",0,0],["5-",-1.652,0.001],["13-",2.834,-0.107],["11-",2.717,0.281]],"infos":[]},{"id":"13-","name":"二四棟三樓交接","v":[-1.095,0.003],"links":[["7-",-1.411,0.021],["12-",3.022,0.163]],"infos":[]},{"id":"14-","name":"三棟一樓右側","v":[0.118,-0.008],"links":[["15-",0.077,-0.027],["10-",-0.293,-0.007],["16-",-1.576,-0.037]],"infos":[[0.488,-0.054,"第三棟大樓一樓","音樂教室、視聽教室"]]},{"id":"15-","name":"三棟一樓左側","v":[-1.705,0.029],"links":[["14-",2.932,-0.021],["10-",-2.053,0.022],["22-",3.053,0.002],["32-",-0.747,0.08],["27-",-0.124,0.054],["1-",-1.748,0.022]],"infos":[[-3.09,-0.008,"第三棟大樓一樓","視聽教室、音樂教室"],[-1.474,-0.059,"風雨走廊","連接第一二三棟大樓一樓的走廊"]]},{"id":"16-","name":"三棟二樓右側","v":[-3.083,0.019],"links":[["29-",-3.122,0.181],["22-",3.139,-0.0],["17-",1.802,-0.201],["14-",1.386,0.403]],"infos":[[-2.817,-0.019,"第三棟大樓二樓","玉山圖書館、愛的書庫、資訊教室"]]},{"id":"17-","name":"三棟三樓右側","v":[0,0],"links":[["18-",0,0.096],["19-",-1.384,-0.178],["16-",-1.758,0.313]],"infos":[[0.507,-0.028,"第三棟大樓三樓","五年丁班、五年丙班、五年乙班、五年甲班"]]},{"id":"18-","name":"三棟三樓左側","v":[2.904,0.058],"links":[["17-",3.041,0.054],["20-",-1.643,-0.217],["22-",-2.285,0.213]],"infos":[[-2.904,-0.101,"第三棟大樓三樓","五年甲班、五年乙班、五年丙班、五年丁班"]]},{"id":"19-","name":"三棟四樓右側","v":[2.786,0.087],"links":[["20-",2.96,0.098],["17-",1.252,0.298]],"infos":[[-2.972,0.007,"第四棟大樓四樓","六年丙班、六年乙班、六年甲班"]]},{"id":"20-","name":"三棟四樓左側","v":[0,0],"links":[["19-",0.045,0.045],["18-",1.508,0.228]],"infos":[[0.328,-0.174,"第四棟大樓四樓","六年甲班、六年乙班、六年丙班"]]},{"id":"21-","name":"中庭","v":[-3.089,0.055],"links":[["9-",-2.967,0.087],["2-",2.37,0.051],["1-",-2.305,0.027],["32-",-1.211,-0.002],["11-",0.821,0.011]],"infos":[[1.559,-0.105,"第四棟大樓","一樓：科任辦公室、智慧教室、總務處、二樓：資源班1、資源班2、諮商室、人事主計辦公室、三樓：特教巡迴教室"],[-0.348,-0.157,"第三棟大樓","一樓：健康中心、教師休息室、知動教室、特教班、二樓：自然科教室、英語教室"],[2.727,-0.24,"第一棟大樓","一樓：教務處、學務處、二樓：四年丁班、校長室、三樓：三年甲班、三年乙班、三年丙班"]]},{"id":"22-","name":"文化走廊三棟交接","v":[0.156,0.019],"links":[["23-",1.629,0.097],["29-",-0.009,0.008],["18-",0.142,-0.19],["15-",0.157,0.199]],"infos":[[1.842,-0.037,"文化走廊","連接第一二三棟大樓二樓"],[-0.853,0.056,"第一棟大樓二樓","資訊教室、愛的書庫、玉山圖書館"]]},{"id":"23-","name":"文化走廊與二棟交接","v":[-1.657,0.035],"links":[["12-",3.047,0.058],["4-",-1.789,0.029],["22-",1.471,0.031]],"infos":[[2.147,-0.145,"第二棟大樓二樓","自然專科教室、英語專科教室"]]},{"id":"24-","name":"幼兒園","v":[0,0],"links":[["28-",0.181,0.009]],"infos":[[0.864,-0.252,"幼兒園大樓","海豚班、綿羊班"]]},{"id":"25-","name":"幼兒園二樓右側","v":[2.93,0.008],"links":[["26-",-3.124,0.061]],"infos":[]},{"id":"26-","name":"幼兒園二樓左側","v":[1.555,0.108],"links":[["25-",1.403,0.07],["28-",-0.109,0.126]],"infos":[[1.551,0.048,"幼兒園大樓二樓","四年甲班、四年乙班、四年丙班、四年丁班"]]},{"id":"27-","name":"幼兒園禮堂間","v":[-2.821,0.044],"links":[["32-",-3.14,0.024],["28-",2.863,0.008],["31-",0.022,-0.045]],"infos":[]},{"id":"28-","name":"幼教大樓入口","v":[3.114,0.045],"links":[["24-",3.13,0.048],["26-",-2.345,0.054],["32-",-0.454,0.026],["27-",1.451,0.072]],"infos":[]},{"id":"29-","name":"玉山圖書館","v":[-0.146,0.105],"links":[["22-",-1.098,-0.017],["16-",-1.294,-0.021]],"infos":[]},{"id":"30-","name":"操場一棟禮堂間","v":[-1.677,0.016],"links":[["3-",-1.214,-0.12],["32-",-1.699,-0.023],["31-",3.11,0.066]],"infos":[]},{"id":"31-","name":"操場溜滑梯","v":[1.624,0.087],"links":[["27-",3.086,0.075],["30-",-1.629,0.039]],"infos":[]},{"id":"32-","name":"籃球場","v":[-3.091,-0.061],"links":[["15-",-2.553,-0.036],["28-",2.806,0.012],["27-",2.601,0.011],["10-",-1.905,-0.1],["21-",-0.821,-0.107],["1-",-0.399,-0.096],["30-",0.182,-0.035]],"infos":[[1.39,-0.15,"活動中心","活動中心、體育器材室、樂活教室"]]}];
+const SC = Object.fromEntries(SCENES.map(s => [s.id, s]));
+SCENES.forEach(s => s.infos.forEach(i => { i[3] = i[3].replace(/、([一二三四]樓：)/g, '；$1'); }));
+
+const BUILDINGS = [
+  { id:'b1', name:'第一棟', floors:3, r:[995,512,1170,546], wall:'#ece4d2', roof:'solar',
+    rooms:['教務處、學務處、一年甲乙丙班','校長室、四年丁班、二年甲乙丙班','三年甲乙丙班'],
+    desc:'面向校門的行政與低年級大樓，中廊從校門圓環直通中庭。' },
+  { id:'b4', name:'第四棟', floors:3, r:[1150,404,1186,512], wall:'#e7e0d0', roof:'gray',
+    rooms:['總務處、智慧教室、科任辦公室','人事主計辦公室、諮商室、資源班 1・2','特教巡迴班'],
+    desc:'位在中庭東側，一樓與第一棟右側走廊相接。' },
+  { id:'b2', name:'第二棟', floors:2, r:[1062,394,1150,430], wall:'#efe6d6', roof:'red',
+    rooms:['特教班、知動教室、教師休息室、健康中心','自然專科教室、英語專科教室'],
+    desc:'中庭北側，二樓以文化走廊連接第一、三棟。' },
+  { id:'b3', name:'第三棟', floors:4, r:[978,376,1050,505], wall:'#e9e5dc', roof:'solar',
+    rooms:['音樂教室、視聽教室','玉山圖書館、愛的書庫、資訊教室','五年甲～丁班','六年甲～丙班'],
+    desc:'校內最高的四層樓，二樓是玉山圖書館，三、四樓是高年級教室。' },
+  { id:'k', name:'幼教大樓', floors:2, r:[926,345,976,398], wall:'#f3e3c8', roof:'red',
+    rooms:['幼兒園：海豚班、綿羊班','四年甲～丁班'],
+    desc:'幼兒園在一樓，入口面向籃球場。' },
+  { id:'gym', name:'活動中心', floors:1, h:8, r:[930,512,988,548], wall:'#dfe3e6', roof:'arch',
+    rooms:['禮堂、體育器材室、樂活教室'],
+    desc:'禮堂兼活動中心，介於操場與第一棟之間。' },
+  { id:'shed', name:'場邊小屋', floors:1, h:3.5, r:[828,334,872,358], wall:'#e6e1d6', roof:'gray', minor:true, rooms:['球場旁附屬建築'], desc:'網球場北側的小型建築。' },
+  { id:'lib', name:'鎮立圖書館', floors:2, r:[972,556,1030,586], wall:'#e3ddd2', roof:'gray', minor:true, outside:true,
+    rooms:['關西鎮立圖書館（校外）'], desc:'學校南側中山路旁的鎮立圖書館，不屬於校園。' },
+];
+const BMAP = Object.fromEntries(BUILDINGS.map(b => [b.id, b]));
+
+/* 360 地點位置：id → [px, py, 樓層, 所屬建築或區域] */
+const SPOT_POS = {
+  '0-':[1140,594,1,'out'], '9-':[1112,560,1,'out'], '21-':[1110,470,1,'out'], '32-':[955,458,1,'out'],
+  '10-':[1056,410,1,'out'], '30-':[992,507,1,'out'], '31-':[918,398,1,'out'], '27-':[940,409,1,'out'],
+  '1-':[1088,529,1,'b1'], '2-':[1160,529,1,'b1'], '3-':[1006,529,1,'b1'],
+  '4-':[1088,529,2,'b1'], '5-':[1160,529,2,'b1'], '6-':[1006,529,2,'b1'],
+  '7-':[1160,529,3,'b1'], '8-':[1006,529,3,'b1'],
+  '11-':[1168,416,1,'b4'], '12-':[1168,416,2,'b4'], '13-':[1168,416,3,'b4'],
+  '14-':[1014,388,1,'b3'], '15-':[1014,494,1,'b3'], '16-':[1014,388,2,'b3'], '29-':[998,438,2,'b3'],
+  '17-':[1014,388,3,'b3'], '18-':[1014,494,3,'b3'], '19-':[1014,388,4,'b3'], '20-':[1014,494,4,'b3'],
+  '22-':[1054,470,2,'walk'], '23-':[1070,436,2,'walk'],
+  '24-':[946,372,1,'k'], '28-':[962,402,1,'k'], '25-':[966,362,2,'k'], '26-':[936,382,2,'k'],
+};
+const GROUPS = [
+  ['校門與戶外', ['0-','9-','21-','32-','10-','27-','31-','30-']],
+  ['第一棟', ['1-','2-','3-','4-','5-','6-','7-','8-']],
+  ['第三棟', ['14-','15-','16-','29-','17-','18-','19-','20-']],
+  ['第二、四棟交接', ['11-','12-','13-']],
+  ['文化走廊（二樓）', ['22-','23-']],
+  ['幼教大樓', ['24-','28-','25-','26-']],
+];
+const TOUR = ['0-','9-','21-','1-','4-','23-','22-','29-','18-','20-','32-','28-','24-','30-'];
+
+/* ================== 場景 ================== */
+const stage = document.getElementById('stage');
+const renderer = new THREE.WebGLRenderer({ antialias:true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+stage.appendChild(renderer.domElement);
+
+const labelRenderer = new CSS2DRenderer({ element: document.getElementById('labels') });
+labelRenderer.setSize(innerWidth, innerHeight);
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(42, innerWidth/innerHeight, 1, 4000);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true; controls.dampingFactor = .08;
+controls.maxPolarAngle = Math.PI * .47; controls.minDistance = 25; controls.maxDistance = 650;
+controls.screenSpacePanning = false;
+
+function applySky(){
+  const c = getComputedStyle(document.documentElement).getPropertyValue('--sky').trim() || '#cfe0e6';
+  scene.background = new THREE.Color(c);
+  scene.fog = new THREE.Fog(c, 450, 1300);
+}
+applySky();
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applySky);
+new MutationObserver(applySky).observe(document.documentElement, { attributes:true, attributeFilter:['data-theme'] });
+
+scene.add(new THREE.HemisphereLight(0xf4f8ff, 0x6f7a5a, 1.15));
+const sun = new THREE.DirectionalLight(0xfff3dc, 2.0);
+sun.position.set(-160, 260, 120);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+Object.assign(sun.shadow.camera, { left:-200, right:200, top:200, bottom:-200, near:10, far:700 });
+sun.shadow.bias = -0.0004;
+scene.add(sun);
+
+/* 小工具 */
+let seed = 7;
+const rnd = () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; };
+const mat = (color, o={}) => new THREE.MeshStandardMaterial({ color, roughness:.9, metalness:0, ...o });
+function shapeFrom(pts){ const s = new THREE.Shape(); pts.forEach(([px,py],i)=>{ const [x,z]=P(px,py); i?s.lineTo(x,-z):s.moveTo(x,-z); }); return s; }
+function flat(geom, color, y, recv=true){ const m = new THREE.Mesh(geom, mat(color)); m.rotation.x = -Math.PI/2; m.position.y = y; m.receiveShadow = recv; scene.add(m); return m; }
+function rectGeom(x1,y1,x2,y2){ const [a,b]=P(x1,y1),[c,d]=P(x2,y2); const g=new THREE.PlaneGeometry(c-a,d-b); g.translate((a+c)/2,-(b+d)/2,0); return g; }
+function pointInPoly(px,py,poly){ let ins=false; for(let i=0,j=poly.length-1;i<poly.length;j=i++){ const [xi,yi]=poly[i],[xj,yj]=poly[j]; if(((yi>py)!==(yj>py)) && (px < (xj-xi)*(py-yi)/(yj-yi)+xi)) ins=!ins; } return ins; }
+function distSeg(px,py,[ax,ay],[bx,by]){ const dx=bx-ax,dy=by-ay; const t=Math.max(0,Math.min(1,((px-ax)*dx+(py-ay)*dy)/(dx*dx+dy*dy))); return Math.hypot(px-ax-t*dx,py-ay-t*dy); }
+function distLine(px,py,line){ let m=1e9; for(let i=0;i<line.length-1;i++) m=Math.min(m,distSeg(px,py,line[i],line[i+1])); return m; }
+
+/* 地面、田地與溪流 */
+flat(new THREE.PlaneGeometry(3000,3000), '#9fb48a', -0.05);
+const FIELDS = [[[745,640],[1240,640],[1290,911],[700,911]], [[430,640],[700,700],[690,911],[480,911]], [[0,560],[330,520],[420,700],[300,911],[0,911]], [[0,0],[480,0],[430,170],[150,180],[0,150]]];
+FIELDS.forEach((f,i)=>flat(new THREE.ShapeGeometry(shapeFrom(f)), i%2?'#86a26c':'#7f9e63', 0.01));
+const RIVER = [[0,430],[140,470],[260,520],[360,560],[430,610],[470,700],[500,800],[540,911]];
+for(let i=0;i<RIVER.length-1;i++){ const [x1,z1]=P(...RIVER[i]),[x2,z2]=P(...RIVER[i+1]); const len=Math.hypot(x2-x1,z2-z1); const g=new THREE.PlaneGeometry(len+20,34); const m=new THREE.Mesh(g,mat('#6f98a8',{roughness:.35})); m.rotation.x=-Math.PI/2; m.rotation.z=-Math.atan2(z2-z1,x2-x1); m.position.set((x1+x2)/2,0.03,(z1+z2)/2); m.receiveShadow=true; scene.add(m); }
+
+/* 道路 */
+const ROADS = [
+  { name:'北平路', w:14, pts:[[640,190],[818,258],[985,344],[1190,390],[1400,382]] },
+  { name:'中山路', w:15, pts:[[360,480],[560,532],[740,563],[910,560],[1040,612],[1140,622],[1230,690],[1290,800],[1320,911]] },
+  { name:'中央街', w:11, pts:[[760,150],[722,300],[708,430],[712,565]] },
+  { name:'中山路', w:14, pts:[[1140,622],[1380,680],[1700,680],[1920,700]] },
+  { name:'118 縣道', w:14, pts:[[1350,0],[1372,200],[1378,680],[1385,911]] },
+  { name:'明德路', w:10, pts:[[1190,390],[1400,300],[1650,260],[1920,330]] },
+  { name:'老街', w:8, pts:[[1100,0],[1140,200],[1160,390]] },
+];
+ROADS.forEach(r=>{
+  for(let i=0;i<r.pts.length-1;i++){
+    const [x1,z1]=P(...r.pts[i]),[x2,z2]=P(...r.pts[i+1]); const len=Math.hypot(x2-x1,z2-z1);
+    const m=new THREE.Mesh(new THREE.PlaneGeometry(len, r.w*S), mat('#6d716d',{roughness:.95}));
+    m.rotation.x=-Math.PI/2; m.rotation.z=-Math.atan2(z2-z1,x2-x1); m.position.set((x1+x2)/2,0.06,(z1+z2)/2); m.receiveShadow=true; scene.add(m);
+    const j=new THREE.Mesh(new THREE.CircleGeometry(r.w*S/2,16), m.material); j.rotation.x=-Math.PI/2; j.position.set(x2,0.061,z2); scene.add(j);
+  }
+});
+function roadLabel(text, px, py){ const d=document.createElement('div'); d.className='blabel minor'; d.textContent=text; d.style.pointerEvents='none'; const o=new CSS2DObject(d); const [x,z]=P(px,py); o.position.set(x,1,z); scene.add(o); }
+roadLabel('北平路',880,272); roadLabel('中山路',800,566); roadLabel('中央街',712,400); roadLabel('鳳山溪',300,535);
+
+/* 校園範圍 */
+const CAMPUS = [[750,290],[818,265],[985,352],[1188,400],[1186,548],[1150,612],[1040,600],[910,552],[745,557]];
+flat(new THREE.ShapeGeometry(shapeFrom(CAMPUS)), '#c9c6bc', 0.1);
+// 圍牆
+for(let i=0;i<CAMPUS.length;i++){
+  const a=CAMPUS[i], b=CAMPUS[(i+1)%CAMPUS.length]; const [x1,z1]=P(...a),[x2,z2]=P(...b); const len=Math.hypot(x2-x1,z2-z1);
+  const w=new THREE.Mesh(new THREE.BoxGeometry(len,1.4,.4), mat('#e9e6dd')); w.position.set((x1+x2)/2,.7,(z1+z2)/2); w.rotation.y=-Math.atan2(z2-z1,x2-x1); w.castShadow=true; scene.add(w);
+}
+// 綠地
+[[[750,292],[818,267],[830,300],[756,330]], [[745,525],[830,525],[905,552],[745,557]], [[1040,560],[1135,575],[1130,606],[1040,598]], [[825,300],[985,355],[985,372],[880,350],[825,330]]]
+  .forEach(g=>flat(new THREE.ShapeGeometry(shapeFrom(g)), '#7fa463', 0.14));
+
+/* 操場跑道 */
+function stadiumPts(cx, cz, hs, r, n=40){ const pts=[]; for(let i=0;i<=n;i++){ const a=Math.PI+Math.PI*i/n; pts.push([cx+r*Math.cos(a), cz-hs+r*Math.sin(a)]); } for(let i=0;i<=n;i++){ const a=Math.PI*i/n; pts.push([cx+r*Math.cos(a), cz+hs+r*Math.sin(a)]); } return pts; }
+{
+  const [cx,cz]=P(888,442), hs=36*S, R=46*S, lanes=6*1.22;
+  const outer=new THREE.Shape(); stadiumPts(cx,cz,hs,R).forEach(([x,z],i)=>i?outer.lineTo(x,-z):outer.moveTo(x,-z));
+  const hole=new THREE.Path(); stadiumPts(cx,cz,hs,R-lanes).forEach(([x,z],i)=>i?hole.lineTo(x,-z):hole.moveTo(x,-z)); outer.holes.push(hole);
+  flat(new THREE.ShapeGeometry(outer), '#8b5f86', 0.2);
+  const inner=new THREE.Shape(); stadiumPts(cx,cz,hs,R-lanes).forEach(([x,z],i)=>i?inner.lineTo(x,-z):inner.moveTo(x,-z));
+  flat(new THREE.ShapeGeometry(inner), '#6f9b4f', 0.2);
+  for(let k=0;k<=6;k++){ const pts=stadiumPts(cx,cz,hs,R-k*1.22).map(([x,z])=>new THREE.Vector3(x,.24,z)); scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({color:0xf1e9f2, transparent:true, opacity:.75}))); }
+  // 紅土內野
+  const [dx,dz]=P(888,418); const dia=new THREE.Mesh(new THREE.CircleGeometry(13,40), mat('#c99a63')); dia.rotation.x=-Math.PI/2; dia.position.set(dx,.23,dz); dia.receiveShadow=true; scene.add(dia);
+  const base=new THREE.Mesh(new THREE.PlaneGeometry(13,13), mat('#82a85d')); base.rotation.x=-Math.PI/2; base.rotation.z=Math.PI/4; base.position.set(dx,.25,dz+2); scene.add(base);
+}
+
+/* 球場 */
+function court(x1,y1,x2,y2, color, lineColor='#f5f5f0', n=1, vertical=true){
+  flat(rectGeom(x1-3,y1-3,x2+3,y2+3), '#a5503f', .18);
+  const step=(vertical?(y2-y1):(x2-x1))/n;
+  for(let i=0;i<n;i++){
+    const a=vertical?[x1,y1+i*step+2,x2,y1+(i+1)*step-2]:[x1+i*step+2,y1,x1+(i+1)*step-2,y2];
+    flat(rectGeom(...a), color, .2);
+    const [ax,az]=P(a[0],a[1]),[bx,bz]=P(a[2],a[3]);
+    const pts=[[ax,az],[bx,az],[bx,bz],[ax,bz],[ax,az]].map(([x,z])=>new THREE.Vector3(x,.23,z));
+    scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({color:lineColor})));
+    const mid=vertical?[[ax,(az+bz)/2],[bx,(az+bz)/2]]:[[(ax+bx)/2,az],[(ax+bx)/2,bz]];
+    scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(mid.map(([x,z])=>new THREE.Vector3(x,.23,z))), new THREE.LineBasicMaterial({color:lineColor})));
+  }
+}
+court(760,345,820,423,'#3f6f9e','#fff',1);
+court(760,430,820,520,'#4f8a5b','#fff',2);
+court(938,414,975,504,'#5a7fae','#fff',2);
+// 籃球架
+[[956,416],[956,502],[956,459]].forEach(([px,py])=>{ const [x,z]=P(px,py); const p=new THREE.Mesh(new THREE.CylinderGeometry(.15,.15,3.4), mat('#555')); p.position.set(x,1.7,z); p.castShadow=true; scene.add(p); const bd=new THREE.Mesh(new THREE.BoxGeometry(1.8,1.1,.1), mat('#fff')); bd.position.set(x,3.4,z); scene.add(bd); });
+
+/* 中庭 */
+flat(rectGeom(1058,436,1146,506), '#87a96a', .16);
+flat(rectGeom(1080,476,1140,502), '#8a6fa0', .19);
+{ const [x,z]=P(1100,455); const pond=new THREE.Mesh(new THREE.CircleGeometry(4.5,30), mat('#7aa7b7',{roughness:.3})); pond.rotation.x=-Math.PI/2; pond.position.set(x,.2,z); scene.add(pond); }
+// 校門圓環與中廊
+{ const [x,z]=P(1140,594); const ring=new THREE.Mesh(new THREE.RingGeometry(4,9,40), mat('#b9b4a8')); ring.rotation.x=-Math.PI/2; ring.position.set(x,.19,z); scene.add(ring);
+  const isl=new THREE.Mesh(new THREE.CylinderGeometry(4,4,.5,32), mat('#7fa463')); isl.position.set(x,.3,z); scene.add(isl);
+  const flag=new THREE.Mesh(new THREE.CylinderGeometry(.1,.1,10), mat('#ddd')); flag.position.set(x,5,z); flag.castShadow=true; scene.add(flag);
+  [[1125,612],[1160,606]].forEach(([px,py])=>{ const [gx,gz]=P(px,py); const pil=new THREE.Mesh(new THREE.BoxGeometry(1.4,3.6,1.4), mat('#9b4b3a')); pil.position.set(gx,1.8,gz); pil.castShadow=true; scene.add(pil); });
+}
+flat(rectGeom(1100,546,1124,590), '#d8d2c4', .17);
+// 中廊頂棚
+{ const [a,b]=P(1100,546),[c,d]=P(1124,590); const roof=new THREE.Mesh(new THREE.BoxGeometry(c-a,.4,d-b), mat('#7d8c84')); roof.position.set((a+c)/2,3.4,(b+d)/2); roof.castShadow=true; scene.add(roof);
+  for(let t=0;t<=4;t++){ [a+.5,c-.5].forEach(x=>{ const col=new THREE.Mesh(new THREE.BoxGeometry(.3,3.4,.3), mat('#ddd')); col.position.set(x,1.7,b+(d-b)*t/4); scene.add(col); }); } }
+
+/* 建築（每層一個方塊，可依樓層切換） */
+const texCache = new Map();
+function facadeTex(wall, len, h, glass=true){
+  const key=wall+'|'+Math.round(len)+'|'+h+glass; if(texCache.has(key)) return texCache.get(key);
+  const cols=Math.max(1,Math.round(len/4)); const c=document.createElement('canvas'); c.width=Math.min(2048,cols*64); c.height=64; const g=c.getContext('2d');
+  g.fillStyle=wall; g.fillRect(0,0,c.width,64);
+  if(glass){ const w=c.width/cols; for(let i=0;i<cols;i++){ g.fillStyle='#4d6c7c'; g.fillRect(i*w+8,16,w-16,30); g.fillStyle='#8fb0bf'; g.fillRect(i*w+8,16,w-16,6); } g.fillStyle='#00000022'; g.fillRect(0,52,c.width,4); }
+  g.fillStyle='#ffffff55'; g.fillRect(0,0,c.width,3);
+  const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace; t.anisotropy=4; texCache.set(key,t); return t;
+}
+function roofTex(kind, w, d){
+  const c=document.createElement('canvas'); c.width=256; c.height=256; const g=c.getContext('2d');
+  if(kind==='solar'){ g.fillStyle='#8f8f8a'; g.fillRect(0,0,256,256); g.fillStyle='#24384f'; for(let y=12;y<244;y+=26) for(let x=12;x<244;x+=20) g.fillRect(x,y,17,22); }
+  else if(kind==='red'){ g.fillStyle='#a8513c'; g.fillRect(0,0,256,256); g.fillStyle='#00000018'; for(let y=0;y<256;y+=10) g.fillRect(0,y,256,2); }
+  else { g.fillStyle='#a9a69c'; g.fillRect(0,0,256,256); g.fillStyle='#00000012'; for(let i=0;i<40;i++) g.fillRect(rnd()*256,rnd()*256,20,2); }
+  const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace; return t;
+}
+const buildingMeshes = [], pickables = [];
+BUILDINGS.forEach(b=>{
+  const [x1,z1]=P(b.r[0],b.r[1]), [x2,z2]=P(b.r[2],b.r[3]); const w=x2-x1, d=z2-z1, cx=(x1+x2)/2, cz=(z1+z2)/2;
+  const fh = b.h || FH; b.group = new THREE.Group(); b.slabs=[]; b.center=new THREE.Vector3(cx,0,cz); b.size=Math.max(w,d);
+  for(let f=0; f<b.floors; f++){
+    const sideX=new THREE.MeshStandardMaterial({ map:facadeTex(b.wall,d,fh,!b.h), roughness:.85 });
+    const sideZ=new THREE.MeshStandardMaterial({ map:facadeTex(b.wall,w,fh,!b.h), roughness:.85 });
+    const topM = mat(b.wall);
+    const m=new THREE.Mesh(new THREE.BoxGeometry(w,fh,d), [sideX,sideX,topM,topM,sideZ,sideZ]);
+    m.position.set(cx, f*fh+fh/2+.1, cz); m.castShadow=true; m.receiveShadow=true; m.userData={ type:'building', id:b.id, floor:f+1 };
+    b.group.add(m); b.slabs.push(m); pickables.push(m);
+  }
+  // 屋頂
+  const H=b.floors*fh+.1;
+  let roof;
+  if(b.roof==='arch'){ const g=new THREE.CylinderGeometry(d/2,d/2,w,24,1,false,0,Math.PI); g.rotateZ(Math.PI/2); g.scale(1,.35,1); roof=new THREE.Mesh(g, mat('#8a9aa3',{roughness:.6})); roof.position.set(cx,H,cz); }
+  else { const rt=roofTex(b.roof,w,d); roof=new THREE.Mesh(new THREE.BoxGeometry(w+.6,.5,d+.6), [mat(b.wall),mat(b.wall),new THREE.MeshStandardMaterial({map:rt,roughness:.7}),mat(b.wall),mat(b.wall),mat(b.wall)]); roof.position.set(cx,H+.25,cz); }
+  roof.castShadow=true; roof.userData={ type:'building', id:b.id, floor:b.floors }; b.roofMesh=roof; b.group.add(roof); pickables.push(roof);
+  scene.add(b.group); buildingMeshes.push(b);
+  // 標籤
+  const el=document.createElement('div'); el.className='blabel'+(b.minor?' minor':''); el.innerHTML=`${b.name}${b.minor?'':`<small>${b.floors}F</small>`}<span class="rooms" hidden></span>`;
+  el.addEventListener('click', e=>{ e.stopPropagation(); selectBuilding(b.id); });
+  b.labelEl=el; b.label=new CSS2DObject(el); b.label.position.set(cx,H+3,cz); scene.add(b.label);
+});
+// 文化走廊（二樓空橋）與風雨走廊
+function bridge(a,b,y,color='#cfd6d0'){ const [x1,z1]=P(...a),[x2,z2]=P(...b); const len=Math.hypot(x2-x1,z2-z1)||1; const g=new THREE.Group();
+  const deck=new THREE.Mesh(new THREE.BoxGeometry(len+3,.5,3), mat(color)); deck.position.y=y; g.add(deck);
+  const roof=new THREE.Mesh(new THREE.BoxGeometry(len+3,.25,3.6), mat('#7d8c84')); roof.position.y=y+3; g.add(roof);
+  [-1.4,1.4].forEach(o=>{ const rail=new THREE.Mesh(new THREE.BoxGeometry(len+3,1,.15), mat('#eef0ea')); rail.position.set(0,y+.75,o); g.add(rail); });
+  g.position.set((x1+x2)/2,0,(z1+z2)/2); g.rotation.y=-Math.atan2(z2-z1,x2-x1); g.traverse(o=>{ if(o.isMesh){ o.castShadow=true; } }); scene.add(g); return g; }
+const walks=[ bridge([1050,470],[1070,470],FH+.1), bridge([1070,470],[1070,430],FH+.1), bridge([1070,470],[1070,512],FH+.1) ];
+const covered=[ bridge([1014,505],[1014,512],0.1,'#d8d2c4'), bridge([1050,500],[1062,500],0.1,'#d8d2c4') ];
+{ const el=document.createElement('div'); el.className='blabel minor'; el.textContent='文化走廊'; el.style.pointerEvents='none'; const o=new CSS2DObject(el); const [x,z]=P(1072,452); o.position.set(x,FH*2+1.5,z); scene.add(o); walks.label=o; }
+
+/* 校外街區（示意） */
+{
+  const box=new THREE.BoxGeometry(1,1,1); box.translate(0,.5,0);
+  const inst=new THREE.InstancedMesh(box, mat('#ffffff',{roughness:.85}), 900); inst.castShadow=true; inst.receiveShadow=true;
+  const tmp=new THREE.Object3D(), col=new THREE.Color(); let n=0;
+  const big=CAMPUS.map(([x,y])=>[x+(x-960)*.08,y+(y-440)*.1]);
+  const palette=['#d9d6cf','#c9c4bb','#b9b6b0','#e2ddd2','#a7a49d','#c6b7a6','#9fa8a6'];
+  for(let py=60; py<880; py+=21) for(let px=560; px<1900; px+=21){
+    const jx=px+(rnd()-.5)*8, jy=py+(rnd()-.5)*8;
+    if(rnd()<.28) continue;
+    if(pointInPoly(jx,jy,big)) continue;
+    if(FIELDS.some(f=>pointInPoly(jx,jy,f))) continue;
+    if(ROADS.some(r=>distLine(jx,jy,r.pts)<r.w*.5+9)) continue;
+    if(jx<760 && jy>500) continue;
+    const near = Math.hypot(jx-1060,jy-460);
+    const h=(4+rnd()*(near<420?10:7)+(rnd()<.06?12:0));
+    tmp.position.set(...(()=>{const [x,z]=P(jx,jy);return [x,0,z];})()); tmp.rotation.y=(rnd()-.5)*.5+(jx<1000?-.45:-.1);
+    tmp.scale.set(7+rnd()*6,h,8+rnd()*8); tmp.updateMatrix(); inst.setMatrixAt(n, tmp.matrix);
+    inst.setColorAt(n, col.set(palette[Math.floor(rnd()*palette.length)])); if(++n>=900) break;
+  }
+  inst.count=n; scene.add(inst);
+}
+
+/* 樹木 */
+{
+  const trunkG=new THREE.CylinderGeometry(.25,.35,2.4,6); trunkG.translate(0,1.2,0);
+  const crownG=new THREE.IcosahedronGeometry(1,1); crownG.translate(0,0,0);
+  const N=700; const trunks=new THREE.InstancedMesh(trunkG, mat('#6b5440'), N); const crowns=new THREE.InstancedMesh(crownG, mat('#ffffff',{flatShading:true}), N);
+  crowns.castShadow=true; trunks.castShadow=true;
+  const tmp=new THREE.Object3D(), col=new THREE.Color(); let n=0;
+  const greens=['#4f7d3c','#5e8c45','#3f6d36','#6b9650','#557f3f'];
+  const add=(px,py,s=1)=>{ if(n>=N) return; const [x,z]=P(px,py); const k=(2.2+rnd()*1.6)*s;
+    tmp.position.set(x,0,z); tmp.rotation.set(0,rnd()*6,0); tmp.scale.set(1,1+rnd()*.4,1); tmp.updateMatrix(); trunks.setMatrixAt(n,tmp.matrix);
+    tmp.position.set(x,2.2+k*.8,z); tmp.scale.set(k,k*(.9+rnd()*.3),k); tmp.updateMatrix(); crowns.setMatrixAt(n,tmp.matrix);
+    crowns.setColorAt(n,col.set(greens[Math.floor(rnd()*greens.length)])); n++; };
+  for(let py=298;py<550;py+=7) add(752+rnd()*6,py, 1.1);
+  for(let t=0;t<1;t+=.03) add(760+t*60+rnd()*8, 290+t*-15+rnd()*20, 1.2);
+  for(let i=0;i<35;i++) add(830+rnd()*150, 300+rnd()*50+ (rnd()*40), 1.1);
+  for(let i=0;i<22;i++) add(828+rnd()*12, 365+rnd()*160, .9);
+  for(let i=0;i<40;i++) add(750+rnd()*155, 527+rnd()*25, 1.2);
+  for(let i=0;i<14;i++) add(1062+rnd()*80, 440+rnd()*34, .8);
+  for(let i=0;i<18;i++) add(1042+rnd()*90, 565+rnd()*35, 1.1);
+  for(let i=0;i<90;i++) add(745+rnd()*480, 618+rnd()*30, 1.3);
+  for(let i=0;i<120;i++){ const px=380+rnd()*360, py=560+rnd()*300; if(distLine(px,py,RIVER)>40 && distLine(px,py,RIVER)<110) add(px,py,1.4); }
+  for(let i=0;i<70;i++) add(560+rnd()*1300, 60+rnd()*800, 1);
+  trunks.count=n; crowns.count=n; scene.add(trunks, crowns);
+}
+
+/* ================== 360 地點標記 ================== */
+const pinGroup=new THREE.Group(); scene.add(pinGroup);
+const pinGeo=(()=>{ const s=new THREE.SphereGeometry(1.5,20,14); s.translate(0,2.6,0); return s; })();
+const tipGeo=(()=>{ const c=new THREE.ConeGeometry(.9,2,14); c.rotateX(Math.PI); c.translate(0,1,0); return c; })();
+const pins={};
+const spotY = id => { const [,,f,b]=SPOT_POS[id]; return (f-1)*FH + (b==='out'?0:.5); };
+SCENES.forEach(s=>{
+  const pos=SPOT_POS[s.id]; if(!pos) return; const [x,z]=P(pos[0],pos[1]);
+  const m=new THREE.MeshBasicMaterial({ color:0xc4452f, depthTest:false, transparent:true });
+  const head=new THREE.Mesh(pinGeo, m), tip=new THREE.Mesh(tipGeo, m);
+  const g=new THREE.Group(); g.add(head, tip); g.position.set(x, spotY(s.id)+.2, z); g.renderOrder=10; head.renderOrder=10; tip.renderOrder=10;
+  const dot=new THREE.Mesh(new THREE.SphereGeometry(.55,10,8), new THREE.MeshBasicMaterial({color:0xffffff, depthTest:false, transparent:true})); dot.position.y=2.6; dot.renderOrder=11; g.add(dot);
+  head.userData={ type:'spot', id:s.id }; tip.userData=head.userData;
+  pinGroup.add(g); pins[s.id]={ g, m, head, tip, floor:pos[2], b:pos[3] }; pickables.push(head, tip);
+});
+
+/* ================== 介面狀態 ================== */
+let floorFilter=0, selected=null; // selected = {type, id}
+const $=s=>document.querySelector(s);
+const card=$('#card'), list=$('#list'), tip=$('#tip');
+const floorName=f=>['','一樓','二樓','三樓','四樓'][f]||`${f}F`;
+const placeOf=id=>{ const [, , f, b]=SPOT_POS[id]; if(b==='out') return '戶外'; if(b==='walk') return `文化走廊 · ${floorName(f)}`; return `${BMAP[b].name} · ${floorName(f)}`; };
+
+function setFloor(f){
+  floorFilter=f;
+  document.querySelectorAll('#dock [data-floor]').forEach(b=>b.setAttribute('aria-pressed', String(+b.dataset.floor===f)));
+  buildingMeshes.forEach(b=>{
+    const top = f===0 ? b.floors : Math.min(f, b.floors);
+    b.slabs.forEach((m,i)=>m.visible = i < top);
+    b.roofMesh.visible = (f===0 || f>=b.floors);
+    const H = top*(b.h||FH)+.1;
+    b.label.position.y = H+3;
+    const rooms=b.labelEl.querySelector('.rooms');
+    if(f>0 && !b.minor && f<=b.floors){ rooms.hidden=false; rooms.textContent=`${floorName(f)}：${b.rooms[f-1]}`; } else rooms.hidden=true;
+    b.labelEl.style.opacity = (f>0 && f>b.floors) ? .55 : 1;
+  });
+  walks.forEach(w=>w.visible = f===0 || f>=2); walks.label.visible = f===0 || f>=2;
+  Object.entries(pins).forEach(([id,p])=>{ p.g.visible = f===0 || p.floor===f; });
+  renderList();
+}
+
+function highlightPins(){
+  Object.entries(pins).forEach(([id,p])=>{
+    const on = selected && ((selected.type==='spot' && selected.id===id) || (selected.type==='building' && p.b===selected.id));
+    p.m.color.set(on ? 0x2f6b4f : 0xc4452f); p.g.scale.setScalar(on && selected.type==='spot' ? 1.45 : 1);
+  });
+  buildingMeshes.forEach(b=>b.labelEl.classList.toggle('on', !!selected && selected.type==='building' && selected.id===b.id));
+}
+
+/* 鏡頭飛行 */
+let fly=null;
+function flyTo(target, dist, polar){
+  const dir=camera.position.clone().sub(controls.target).normalize();
+  if(polar!==undefined){ const az=Math.atan2(dir.x,dir.z); dir.set(Math.sin(polar)*Math.sin(az), Math.cos(polar), Math.sin(polar)*Math.cos(az)); }
+  const endPos=target.clone().add(dir.multiplyScalar(dist));
+  fly={ t:0, dur: matchMedia('(prefers-reduced-motion: reduce)').matches?.01:1.1, p0:camera.position.clone(), t0:controls.target.clone(), p1:endPos, t1:target.clone() };
+}
+function spotWorld(id){ const p=pins[id]; return p.g.position.clone().add(new THREE.Vector3(0,2,0)); }
+
+function selectSpot(id, opts={}){
+  selected={type:'spot', id}; const s=SC[id];
+  const f=SPOT_POS[id][2]; if(floorFilter && floorFilter!==f) setFloor(f);
+  highlightPins(); renderList();
+  if(!opts.noFly) flyTo(spotWorld(id), opts.dist||95, .95);
+  let facts=s.infos.map(i=>`<li><b>${i[2]}</b><span>${i[3]}</span></li>`).join('');
+  const [, , sf, sb]=SPOT_POS[id];
+  if(!facts && BMAP[sb]) facts=`<li><b>${BMAP[sb].name}${floorName(sf)}</b><span>${BMAP[sb].rooms[sf-1]}</span></li>`;
+  const links=s.links.map(l=>`<button class="chip" data-spot="${l[0]}">${SC[l[0]].name}</button>`).join('');
+  card.innerHTML=`<button class="x" aria-label="關閉">×</button>
+    <div class="eyebrow">360° 實景點</div>
+    <h2>${s.name}</h2>
+    <div class="meta">${placeOf(id)}</div>
+    ${facts?`<p class="sub">在這裡看得到</p><ul class="facts">${facts}</ul>`:''}
+    <p class="sub">可以走到</p><div class="chips">${links}</div>
+    <div class="actions"><button class="btn primary" id="go360">進入 360° 實景</button></div>`;
+  openCard();
+}
+function selectBuilding(bid, opts={}){
+  const b=BMAP[bid]; selected={type:'building', id:bid}; highlightPins(); renderList();
+  if(!opts.noFly) flyTo(b.center.clone().setY(b.floors*(b.h||FH)/2), Math.max(90, b.size*2.2), .9);
+  const spots=Object.keys(SPOT_POS).filter(k=>SPOT_POS[k][3]===bid);
+  const floors=b.rooms.map((r,i)=>`<button class="floorrow" data-floor="${i+1}"><b>${i+1}F</b><span>${r}</span></button>`).join('');
+  card.innerHTML=`<button class="x" aria-label="關閉">×</button>
+    <div class="eyebrow">${b.outside?'校外鄰近':'校舍'}</div>
+    <h2>${b.name}</h2>
+    <div class="meta">${b.floors} 層樓 · 約 ${Math.round((b.r[2]-b.r[0])*S)} × ${Math.round((b.r[3]-b.r[1])*S)} 公尺</div>
+    <p class="welcome" style="margin:0 0 12px;line-height:1.65">${b.desc}</p>
+    <p class="sub">各樓層（點選可切到該層）</p><div class="floors">${floors}</div>
+    ${spots.length?`<p class="sub">這棟的 360° 實景點</p><div class="chips">${spots.map(k=>`<button class="chip" data-spot="${k}">${SC[k].name}</button>`).join('')}</div>`:''}`;
+  openCard();
+}
+function showWelcome(){
+  selected=null; highlightPins(); renderList();
+  card.innerHTML=`<div class="eyebrow">歡迎</div>
+    <h2>走一趟關西國小</h2>
+    <div class="welcome">
+      <p>這是依 Google 地圖衛星影像繪製的校園示意模型。拖曳可旋轉，滾輪或雙指可縮放，右鍵或雙指拖曳可平移。</p>
+      <p>紅色圖釘是 33 個 360° 實景拍攝點，點下去可以看到那裡有哪些教室，再按「進入 360° 實景」就能站在現場環顧四周。</p>
+    </div>
+    <div class="legend">
+      <i style="background:var(--pin);border-radius:50%"></i><span>360° 實景點</span>
+      <i style="background:#ece4d2;border:1px solid #0002"></i><span>校舍（點標籤看各樓層）</span>
+      <i style="background:#8b5f86"></i><span>操場跑道</span>
+      <i style="background:#5a7fae"></i><span>籃球場、網球場</span>
+    </div>
+    <div class="actions">
+      <button class="btn primary" id="startTour">開始導覽</button>
+      <a class="btn" href="${EARTH_URL}" target="_blank" rel="noopener">Google Earth</a>
+      <a class="btn" href="${SITE_360}" target="_blank" rel="noopener">原 360 網站</a>
+    </div>`;
+  openCard();
+}
+function openCard(){ card.hidden=false; document.body.classList.add('card-open'); card.scrollTop=0; }
+card.addEventListener('click', e=>{
+  const t=e.target.closest('button'); if(!t) return;
+  if(t.classList.contains('x')){ stopTour(); showWelcome(); return; }
+  if(t.dataset.spot){ stopTour(); selectSpot(t.dataset.spot); return; }
+  if(t.classList.contains('floorrow')){ setFloor(+t.dataset.floor); return; }
+  if(t.id==='go360') openPano(selected.id);
+  if(t.id==='startTour') startTour();
+});
+
+/* 清單 */
+let tab='spots';
+function renderList(){
+  const q=$('#q').value.trim();
+  let html='';
+  if(tab==='spots'){
+    GROUPS.forEach(([g,ids])=>{
+      const rows=ids.filter(id=>(!floorFilter||SPOT_POS[id][2]===floorFilter) && (!q || (SC[id].name+placeOf(id)+SC[id].infos.map(i=>i[2]+i[3]).join('')).includes(q)));
+      if(!rows.length) return;
+      html+=`<div class="grp">${g}</div>`+rows.map(id=>`<button class="item${selected?.type==='spot'&&selected.id===id?' on':''}" data-spot="${id}"><span class="dot"></span><span>${SC[id].name}</span><span class="fl">${SPOT_POS[id][2]}F</span></button>`).join('');
+    });
+  } else {
+    BUILDINGS.forEach(b=>{
+      const hit = !q || (b.name+b.rooms.join('')).includes(q);
+      if(!hit) return;
+      html+=`<button class="item${selected?.type==='building'&&selected.id===b.id?' on':''}" data-bld="${b.id}"><span class="bsw" style="background:${b.wall}"></span><span>${b.name}</span><span class="fl">${b.floors}F</span></button>`;
+      if(q) b.rooms.forEach((r,i)=>{ if(r.includes(q)) html+=`<button class="item" data-bld="${b.id}" data-fl="${i+1}" style="padding-left:30px"><span>${i+1}F　${r}</span></button>`; });
+    });
+  }
+  list.innerHTML = html || `<p style="padding:12px;color:var(--muted)">找不到「${q}」。試試「圖書館」「五年」「健康中心」。</p>`;
+}
+list.addEventListener('click', e=>{ const t=e.target.closest('.item'); if(!t) return; stopTour(); document.body.classList.remove('menu-open');
+  if(t.dataset.spot) selectSpot(t.dataset.spot); else { if(t.dataset.fl) setFloor(+t.dataset.fl); selectBuilding(t.dataset.bld); } });
+$('#q').addEventListener('input', ()=>{
+  const q=$('#q').value.trim();
+  if(q && tab==='spots' && !SCENES.some(s=>(s.name+s.infos.map(i=>i[3]).join('')).includes(q)) && BUILDINGS.some(b=>b.rooms.join('').includes(q))) setTab('bld');
+  renderList();
+});
+function setTab(t){ tab=t; $('#tab-spots').setAttribute('aria-selected', String(t==='spots')); $('#tab-bld').setAttribute('aria-selected', String(t==='bld')); renderList(); }
+$('#tab-spots').onclick=()=>setTab('spots'); $('#tab-bld').onclick=()=>setTab('bld');
+$('#menuBtn').onclick=()=>document.body.classList.toggle('menu-open');
+
+/* 工具列 */
+document.querySelectorAll('#dock [data-floor]').forEach(b=>b.onclick=()=>setFloor(+b.dataset.floor));
+const HOME=new THREE.Vector3(...(()=>{const [x,z]=P(1010,455);return [x,0,z];})());
+$('#viewBird').onclick=()=>{ stopTour(); flyTo(HOME, 330, .95); };
+$('#viewTop').onclick=()=>{ stopTour(); flyTo(HOME, 330, .02); };
+$('#spin').onclick=()=>{ controls.autoRotate=!controls.autoRotate; controls.autoRotateSpeed=.6; $('#spin').setAttribute('aria-pressed', String(controls.autoRotate)); };
+$('#compass').onclick=()=>{ const d=camera.position.distanceTo(controls.target); const pol=Math.acos(Math.min(1,(camera.position.y-controls.target.y)/d)); const t=controls.target.clone(); fly={t:0,dur:.8,p0:camera.position.clone(),t0:t.clone(),p1:t.clone().add(new THREE.Vector3(0,Math.cos(pol)*d,Math.sin(pol)*d)),t1:t}; };
+$('#tourBtn').onclick=()=> tourIdx<0 ? startTour() : stopTour();
+
+/* 導覽 */
+let tourIdx=-1, tourTimer=null;
+function tourGo(i){ tourIdx=(i+TOUR.length)%TOUR.length; selectSpot(TOUR[tourIdx], {dist:85}); $('#tourProg').textContent=`${tourIdx+1} / ${TOUR.length}`; clearTimeout(tourTimer); tourTimer=setTimeout(()=>tourGo(tourIdx+1), 7000); }
+function startTour(){ setFloor(0); $('#tourbar').hidden=false; $('#tourBtn').textContent='結束導覽'; $('#tourBtn').setAttribute('aria-pressed','true'); tourGo(0); }
+function stopTour(){ if(tourIdx<0) return; tourIdx=-1; clearTimeout(tourTimer); $('#tourbar').hidden=true; $('#tourBtn').textContent='開始導覽'; $('#tourBtn').setAttribute('aria-pressed','false'); }
+$('#tourPrev').onclick=()=>tourGo(tourIdx-1); $('#tourNext').onclick=()=>tourGo(tourIdx+1); $('#tourStop').onclick=stopTour;
+
+/* 滑鼠／觸控選取 */
+const ray=new THREE.Raycaster(), ndc=new THREE.Vector2();
+function pick(ev){
+  const r=renderer.domElement.getBoundingClientRect(); ndc.set(((ev.clientX-r.left)/r.width)*2-1, -((ev.clientY-r.top)/r.height)*2+1); ray.setFromCamera(ndc,camera);
+  const vis=pickables.filter(o=>{ let p=o; while(p){ if(!p.visible) return false; p=p.parent; } return true; });
+  const hits=ray.intersectObjects(vis,false);
+  return hits.find(h=>h.object.userData.type==='spot') || hits[0];
+}
+let down=null;
+renderer.domElement.addEventListener('pointerdown', e=>{ down=[e.clientX,e.clientY]; if(fly) fly=null; });
+renderer.domElement.addEventListener('pointerup', e=>{
+  if(!down || Math.hypot(e.clientX-down[0],e.clientY-down[1])>6) return; down=null;
+  const h=pick(e); if(!h) return; stopTour();
+  if(h.object.userData.type==='spot') selectSpot(h.object.userData.id); else if(h.object.userData.type==='building') selectBuilding(h.object.userData.id);
+});
+let hoverRaf=0;
+renderer.domElement.addEventListener('pointermove', e=>{
+  if(e.pointerType!=='mouse' || hoverRaf) return;
+  hoverRaf=requestAnimationFrame(()=>{ hoverRaf=0; const h=pick(e);
+    if(h && h.object.userData.type==='spot'){ const id=h.object.userData.id; tip.innerHTML=`${SC[id].name}<small>${placeOf(id)}</small>`; tip.style.left=e.clientX+'px'; tip.style.top=e.clientY+'px'; tip.hidden=false; renderer.domElement.style.cursor='pointer'; }
+    else if(h && h.object.userData.type==='building'){ const b=BMAP[h.object.userData.id]; tip.innerHTML=`${b.name}<small>${h.object.userData.floor}F</small>`; tip.style.left=e.clientX+'px'; tip.style.top=e.clientY+'px'; tip.hidden=false; renderer.domElement.style.cursor='pointer'; }
+    else { tip.hidden=true; renderer.domElement.style.cursor=''; } });
+});
+renderer.domElement.addEventListener('pointerleave', ()=>tip.hidden=true);
+controls.addEventListener('start', ()=>{ if(tourIdx>=0) stopTour(); });
+
+/* ================== 360 環景（Marzipano） ================== */
+const LEVELS=[{tileSize:256,size:256,fallbackOnly:true},{tileSize:512,size:512},{tileSize:512,size:1024},{tileSize:512,size:2048}];
+let viewer=null, mzScenes={}, curPano=null, mzReady=null, autorot=null;
+const arrowSVG='<svg viewBox="0 0 24 24"><path d="M12 4 L20 14 L15 14 L15 20 L9 20 L9 14 L4 14Z" fill="#2f6b4f"/></svg>';
+function loadMarzipano(){
+  if(mzReady) return mzReady;
+  mzReady=new Promise((res,rej)=>{ const s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/marzipano@0.10.2/dist/marzipano.js'; s.onload=res; s.onerror=rej; document.head.appendChild(s); });
+  return mzReady;
+}
+function canLoadTiles(){ return new Promise(res=>{ const im=new Image(); im.crossOrigin='anonymous'; const t=setTimeout(()=>res(false),8000); im.onload=()=>{clearTimeout(t);res(true)}; im.onerror=()=>{clearTimeout(t);res(false)}; im.src=PANO_BASE+'tiles/0-/preview.jpg'; }); }
+let tilesOK=null;
+function showPanoFail(id){
+  $('#pano').innerHTML=`<div class="pano-fail"><div><p style="font-size:17px;margin:0 0 8px">這個頁面環境無法載入 360° 影像</p>
+  <p style="margin:0 0 14px;color:#b9c4bd">360° 照片放在學校的環景網站上。請改到原網站觀看「${SC[id].name}」，或把這個網頁放到 GitHub Pages 或直接在電腦上開啟。</p>
+  <a href="${SITE_360}" target="_blank" rel="noopener">開啟關西國小 360° 環景網站 ↗</a></div></div>`;
+}
+async function openPano(id){
+  stopTour(); $('#pano-wrap').hidden=false; $('#panoTitle').textContent=SC[id].name;
+  if(tilesOK===null) tilesOK=await canLoadTiles();
+  if(!tilesOK){ showPanoFail(id); return; }
+  try{ await loadMarzipano(); }catch{ tilesOK=false; showPanoFail(id); return; }
+  if(!viewer) viewer=new Marzipano.Viewer($('#pano'), { controls:{ mouseViewMode:'drag' } });
+  switchPano(id);
+}
+function makeScene(id){
+  if(mzScenes[id]) return mzScenes[id];
+  const s=SC[id];
+  const source=Marzipano.ImageUrlSource.fromString(PANO_BASE+'tiles/'+id+'/{z}/{f}/{y}/{x}.jpg', { cubeMapPreviewUrl: PANO_BASE+'tiles/'+id+'/preview.jpg' });
+  const geometry=new Marzipano.CubeGeometry(LEVELS);
+  const limiter=Marzipano.RectilinearView.limit.traditional(1344, 100*Math.PI/180, 120*Math.PI/180);
+  const view=new Marzipano.RectilinearView({ yaw:s.v[0], pitch:s.v[1], fov:1.44 }, limiter);
+  const sc=viewer.createScene({ source, geometry, view, pinFirstLevel:true });
+  s.links.forEach(([target,yaw,pitch])=>{
+    const el=document.createElement('div'); el.className='hs-link'; el.innerHTML=`<div class="arrow">${arrowSVG}</div><div class="name">${SC[target].name}</div>`;
+    el.addEventListener('click',()=>switchPano(target)); sc.hotspotContainer().createHotspot(el,{yaw,pitch});
+  });
+  s.infos.forEach(([yaw,pitch,title,text])=>{
+    const el=document.createElement('div'); el.className='hs-info'; el.innerHTML=`<div class="head"><i>i</i>${title}</div><div class="body">${text}</div>`;
+    el.addEventListener('click',()=>el.classList.toggle('open')); sc.hotspotContainer().createHotspot(el,{yaw,pitch});
+  });
+  return mzScenes[id]={ sc, view, s };
+}
+function switchPano(id){
+  const o=makeScene(id); o.view.setParameters({ yaw:o.s.v[0], pitch:o.s.v[1], fov:1.44 });
+  o.sc.switchTo({ transitionDuration: 700 }); curPano=id; $('#panoTitle').textContent=SC[id].name;
+  if(autorot) viewer.startMovement(autorot);
+  selectSpot(id, { dist:85 });
+}
+$('#panoBack').onclick=()=>{ $('#pano-wrap').hidden=true; if(viewer) viewer.stopMovement(); };
+$('#panoRotate').onclick=()=>{ if(!viewer) return; if(autorot){ viewer.stopMovement(); autorot=null; } else { autorot=Marzipano.autorotate({ yawSpeed:.04, targetPitch:0, targetFov:Math.PI/2 }); viewer.startMovement(autorot); } $('#panoRotate').setAttribute('aria-pressed', String(!!autorot)); };
+addEventListener('keydown', e=>{ if(e.key==='Escape' && !$('#pano-wrap').hidden) $('#panoBack').click(); });
+
+/* ================== 迴圈 ================== */
+const needle=document.getElementById('needle');
+const clock=new THREE.Clock();
+function frame(){
+  const dt=clock.getDelta();
+  if(fly){ fly.t=Math.min(1,fly.t+dt/fly.dur); const k=fly.t<.5?4*fly.t**3:1-(-2*fly.t+2)**3/2; camera.position.lerpVectors(fly.p0,fly.p1,k); controls.target.lerpVectors(fly.t0,fly.t1,k); if(fly.t>=1) fly=null; }
+  controls.update();
+  const az=Math.atan2(camera.position.x-controls.target.x, camera.position.z-controls.target.z);
+  needle.setAttribute('transform', `rotate(${(az*180/Math.PI).toFixed(1)} 20 20)`);
+  const t=performance.now()/1000;
+  Object.entries(pins).forEach(([id,p])=>{ if(!(selected?.type==='spot' && selected.id===id)) p.g.position.y = spotY(id)+.2+Math.sin(t*2+p.g.position.x)*.25; });
+  if($('#pano-wrap').hidden){ renderer.render(scene,camera); labelRenderer.render(scene,camera); }
+  requestAnimationFrame(frame);
+}
+addEventListener('resize', ()=>{ camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth,innerHeight); labelRenderer.setSize(innerWidth,innerHeight); });
+
+camera.position.set(HOME.x-40, 170, HOME.z+215); controls.target.copy(HOME);
+setFloor(0); showWelcome(); frame();
+</script>
+</body>
+</html>
