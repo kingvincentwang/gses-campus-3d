@@ -357,7 +357,7 @@ for(let i=0;i<RIVER.length-1;i++){ const [x1,z1]=P(...RIVER[i]),[x2,z2]=P(...RIV
 /* 道路 */
 const ROADS = [
   { name:'北平路', w:14, pts:[[640,178],[800,236],[985,343],[1150,388],[1400,382]] },
-  { name:'中山路', w:15, pts:[[360,480],[560,532],[740,548],[905,541],[960,565],[1000,592],[1145,594],[1230,650],[1290,800],[1320,911]] },
+  { name:'中山路', w:15, pts:[[360,480],[560,532],[740,548],[905,541],[958,575],[1000,599],[1145,595],[1230,650],[1290,800],[1320,911]] },
   { name:'中央街', w:11, pts:[[760,150],[742,300],[738,430],[740,548]] },
   { name:'中山路', w:14, pts:[[1145,594],[1380,680],[1700,680],[1920,700]] },
   { name:'118 縣道', w:14, pts:[[1350,0],[1372,200],[1378,680],[1385,911]] },
@@ -382,13 +382,14 @@ flat(new THREE.ShapeGeometry(shapeFrom(CAMPUS)), '#c9c6bc', 0.1);
 const GATE=[1104,1131];   // 校門開口（南側圍牆、中山路旁）
 function wallPiece(a,b){ const [x1,z1]=P(...a),[x2,z2]=P(...b); const len=Math.hypot(x2-x1,z2-z1);
   const w=new THREE.Mesh(new THREE.BoxGeometry(len,1.4,.4), mat('#e9e6dd')); w.position.set((x1+x2)/2,.7,(z1+z2)/2); w.rotation.y=-Math.atan2(z2-z1,x2-x1); w.castShadow=true; scene.add(w); }
+const GATE2=[952,963];   // 側門開口（西南角、看台南端與第一棟西端之間）
 for(let i=0;i<CAMPUS.length;i++){
   const a=CAMPUS[i], b=CAMPUS[(i+1)%CAMPUS.length];
-  const lo=Math.min(a[0],b[0]), hi=Math.max(a[0],b[0]);
-  if(a[1]>570 && b[1]>570 && lo<GATE[0] && hi>GATE[1]){
-    const at=x=>[x, a[1]+(b[1]-a[1])*(x-a[0])/(b[0]-a[0])];
-    const [p,q]=a[0]<b[0]?[a,b]:[b,a]; wallPiece(p,at(GATE[0])); wallPiece(at(GATE[1]),q);
-  } else wallPiece(a,b);
+  const [p,q]=a[0]<b[0]?[a,b]:[b,a];
+  const at=x=>[x, p[1]+(q[1]-p[1])*(x-p[0])/(q[0]-p[0])];
+  const cuts=(a[1]>520 && b[1]>520) ? [GATE,GATE2].filter(([g0,g1])=>p[0]<g0 && q[0]>g1).sort((u,v)=>u[0]-v[0]) : [];
+  if(!cuts.length){ wallPiece(a,b); continue; }
+  let s=p; cuts.forEach(([g0,g1])=>{ wallPiece(s,at(g0)); s=at(g1); }); wallPiece(s,q);
 }
 // 綠地
 [[[758,340],[789,252],[905,316],[880,345],[770,345]], [[985,540],[1140,540],[1143,578],[998,576]], [[870,333],[960,345],[983,357],[950,380],[870,350]], [[938,430],[958,430],[958,505],[938,505]]]
@@ -583,6 +584,59 @@ flat(rectGeom(1068,425,1127,446), '#7fa463', .16);
   { const sm=mat('#f2f2ee',{roughness:.9}); for(let k=0;k<6;k++){ const [x,z]=P((GATE[0]+GATE[1])/2,587+k*2.2); const st=new THREE.Mesh(new THREE.PlaneGeometry(6,.7), sm); st.rotation.x=-Math.PI/2; st.position.set(x,.08,z); scene.add(st); } }
 }
 flat(rectGeom(1093,510,1109,558), '#bdb7ab', .17);
+
+/* 側門（依街景照片）：黑色鐵柵門、柏油車道、門邊大樹、文昌福德祠、紅磚人行道、木柵欄、操場防護網 */
+{
+  const sh=o=>{ o.traverse(m=>{ if(m.isMesh){ m.castShadow=true; m.receiveShadow=true; } }); scene.add(o); return o; };
+  const yAt=x=>549+(578-549)*(x-950)/(998-950);           // 這段圍牆的 y
+  const W=(px)=>{ const [x,z]=P(px,yAt(px)); return [x,z]; };
+  const ang=-Math.atan2(P(0,578)[1]-P(0,549)[1], P(998,0)[0]-P(950,0)[0]);
+  // 門柱與黑色鐵柵門
+  [GATE2[0]-.6,GATE2[1]+.6].forEach(px=>{ const [x,z]=W(px); const p=sh(new THREE.Mesh(new THREE.BoxGeometry(.8,2.4,.8), mat('#b9b8b2'))); p.position.set(x,1.2,z); });
+  { const [x0,z0]=W(GATE2[0]), [x1,z1]=W(GATE2[1]); const len=Math.hypot(x1-x0,z1-z0)-.4; const g=new THREE.Group(); const iron=mat('#2b2d2e',{metalness:.4,roughness:.5});
+    [.2,1.7].forEach(y=>{ const r=new THREE.Mesh(new THREE.BoxGeometry(len,.08,.08), iron); r.position.y=y; g.add(r); });
+    for(let i=0;i<=len/.18;i++){ const bar=new THREE.Mesh(new THREE.BoxGeometry(.04,1.55,.04), iron); bar.position.set(-len/2+i*.18,.95,0); g.add(bar); }
+    g.position.set((x0+x1)/2,0,(z0+z1)/2); g.rotation.y=ang; sh(g); }
+  // 柏油車道：從側門往北進校園
+  flat(new THREE.ShapeGeometry(shapeFrom([[GATE2[0],yAt(GATE2[0])],[GATE2[1],yAt(GATE2[1])],[961,512],[950,512]])), '#5f625f', .175);
+  // 紅磚人行道（圍牆外、中山路旁）
+  [[[830,532],[902,534]],[[902,534],[950,552]],[[950,552],[1000,583]]].forEach(([a,b])=>{
+    flat(new THREE.ShapeGeometry(shapeFrom([[a[0],a[1]-1],[b[0],b[1]-1],[b[0],b[1]+5],[a[0],a[1]+5]])), '#a2564a', .09); });
+  // 門邊大樹：枝幹粗壯、葉子稀疏
+  { const [x,z]=P(948,557); const bark=mat('#5e4c3c');
+    const tr=sh(new THREE.Mesh(new THREE.CylinderGeometry(.45,.75,4.5,9), bark)); tr.position.set(x,2.25,z);
+    for(let i=0;i<9;i++){ const a=i/9*Math.PI*2, l=3+rnd()*2.5; const br=new THREE.Mesh(new THREE.CylinderGeometry(.1,.26,l,6), bark); const g=new THREE.Group(); br.position.y=l/2; g.add(br); g.position.set(x,4.2,z); g.rotation.set(Math.sin(a)*.8,0,Math.cos(a)*.8); sh(g);
+      if(i%2===0){ const lf=new THREE.Mesh(new THREE.IcosahedronGeometry(.9,0), mat('#6f8f4a',{flatShading:true})); lf.position.set(0,l,0); g.add(lf); } }
+    const bench=sh(new THREE.Mesh(new THREE.BoxGeometry(1.8,.4,.5), mat('#5a4a3c'))); const [bx,bz]=P(944,556); bench.position.set(bx,.3,bz+.5); }
+  // 腳踏車架、告示牌
+  { for(let i=0;i<5;i++){ const [x,z]=P(932+i*1.4,548+i*.5); const ring=new THREE.Mesh(new THREE.TorusGeometry(.35,.03,6,16,Math.PI), mat('#c9cccc',{metalness:.5})); ring.position.set(x,.1,z+1.2); ring.rotation.y=ang; scene.add(ring); }
+    const [x,z]=P(922,543); const bd=sh(new THREE.Mesh(new THREE.BoxGeometry(2,1.2,.1), mat('#e8e4d6'))); bd.position.set(x,1.2,z+1.5); bd.rotation.y=ang*.4; bd.rotation.x=-.25;
+    [-.8,.8].forEach(o=>{ const lg=sh(new THREE.Mesh(new THREE.BoxGeometry(.08,.9,.08), mat('#555'))); lg.position.set(x+o,.45,z+1.6); }); }
+  // 文昌福德祠：紅磚牆、紅瓦燕尾屋頂
+  { const g=new THREE.Group(); const brick=canvasTex(128,64,(c,w,h)=>{ c.fillStyle='#a8483a'; c.fillRect(0,0,w,h); c.fillStyle='#00000025'; for(let y=0;y<h;y+=6){ c.fillRect(0,y,w,1); for(let x=(y/6)%2?6:0;x<w;x+=12) c.fillRect(x,y,1,6); } });
+    const bm=new THREE.MeshStandardMaterial({map:brick,roughness:.8});
+    const body=new THREE.Mesh(new THREE.BoxGeometry(5,2.8,3.6), bm); body.position.y=1.4; g.add(body);
+    const roofM=mat('#b8452f',{flatShading:true});
+    [-1,1].forEach(s=>{ const r=new THREE.Mesh(new THREE.BoxGeometry(5.8,.16,2.4), roofM); r.position.set(0,3.35,s*.95); r.rotation.x=s*.42; g.add(r); });
+    const ridge=new THREE.Mesh(new THREE.BoxGeometry(6.2,.3,.3), mat('#c9a14a')); ridge.position.y=3.8; g.add(ridge);
+    [-1,1].forEach(s=>{ const tip=new THREE.Mesh(new THREE.ConeGeometry(.16,1,6), mat('#c9a14a')); tip.position.set(s*3.3,4.05,0); tip.rotation.z=-s*1.0; g.add(tip); });
+    const door=new THREE.Mesh(new THREE.PlaneGeometry(1.2,1.8), mat('#5b2a22')); door.position.set(0,1.1,1.81); g.add(door);
+    const [x,z]=P(976,569); g.position.set(x,0,z); g.rotation.y=ang; sh(g);
+    const pl=sh(new THREE.Mesh(new THREE.BoxGeometry(3,.6,1), mat('#c9c6bc'))); const [px,pz]=P(965,563); pl.position.set(px,.3,pz); pl.rotation.y=ang;
+    for(let i=0;i<5;i++){ const fl=new THREE.Mesh(new THREE.IcosahedronGeometry(.3,0), mat(i%2?'#d8433a':'#4f8a3c',{flatShading:true})); fl.position.set(px-1.2+i*.6,.8,pz); scene.add(fl); } }
+  // 圍牆上的木柵欄：側門以西沿中山路
+  { const fence=new THREE.InstancedMesh(new THREE.BoxGeometry(.1,1.1,.06), mat('#9a6a42'), 700); const t=new THREE.Object3D(); let n=0;
+    [[[812,529],[902,531]],[[902,531],[950,549]],[[950,549],[GATE2[0]-1,yAt(GATE2[0]-1)]]].forEach(([a,b])=>{ const [ax,az]=P(...a),[bx,bz]=P(...b); const len=Math.hypot(bx-ax,bz-az);
+      for(let d=0; d<len && n<700; d+=.24){ const k=d/len; t.position.set(ax+(bx-ax)*k, 1.4+.55, az+(bz-az)*k); t.updateMatrix(); fence.setMatrixAt(n++,t.matrix); } });
+    fence.count=n; scene.add(fence); }
+  // 操場西南角的高聳防護網
+  { const poles=[[842,528],[876,528],[910,532]]; const pm=mat('#9a9c98'); const H=15;
+    poles.forEach(([px,py])=>{ const [x,z]=P(px,py); const p=sh(new THREE.Mesh(new THREE.CylinderGeometry(.14,.2,H,8), pm)); p.position.set(x,H/2,z); });
+    const net=canvasTex(256,128,(c,w,h)=>{ c.clearRect(0,0,w,h); c.strokeStyle='rgba(40,44,46,.55)'; c.lineWidth=1; for(let i=0;i<w;i+=6){ c.beginPath(); c.moveTo(i,0); c.lineTo(i,h); c.stroke(); } for(let j=0;j<h;j+=6){ c.beginPath(); c.moveTo(0,j); c.lineTo(w,j); c.stroke(); } });
+    net.wrapS=net.wrapT=THREE.RepeatWrapping;
+    for(let i=0;i<poles.length-1;i++){ const [x1,z1]=P(...poles[i]),[x2,z2]=P(...poles[i+1]); const len=Math.hypot(x2-x1,z2-z1); const t=net.clone(); t.needsUpdate=true; t.repeat.set(len/3,3);
+      const m=new THREE.Mesh(new THREE.PlaneGeometry(len,H-3), new THREE.MeshBasicMaterial({map:t,transparent:true,side:THREE.DoubleSide,depthWrite:false})); m.position.set((x1+x2)/2,(H+3)/2,(z1+z2)/2); m.rotation.y=-Math.atan2(z2-z1,x2-x1); scene.add(m); } }
+}
 
 /* 建築（每層一個方塊，可依樓層切換） */
 const texCache = new Map();
