@@ -257,10 +257,10 @@ const BUILDINGS = [
   { id:'b2', name:'第二棟', floors:2, r:[1068,447,1131,467], wall:'#d6cfc2', roof:'solar',
     rooms:['特教班、知動教室、教師休息室、健康中心','自然專科教室、英語專科教室'],
     desc:'兩層樓，位在中庭北側，西端接在文化走廊上；北面窗外就是種著棕櫚樹和鳳凰木的小花園。' },
-  { id:'b3', name:'第三棟', floors:4, r:[1050,402,1127,424], wall:'#e8c4bd', roof:'solar',
+  { id:'b3', name:'第三棟', floors:4, r:[1050,402,1127,424], wall:'#e8c4bd', roof:'solar', style:'b3', styleTop:'b3top',
     rooms:['音樂教室、視聽教室','玉山圖書館、愛的書庫、資訊教室','五年甲～丁班','六年甲～丙班'],
     desc:'校舍最北側的四層樓，二樓是玉山圖書館，三、四樓是高年級教室。' },
-  { id:'k', name:'幼兒園大樓', floors:2, r:[952,384,1026,418], wall:'#f3e3c8', roof:'gray',
+  { id:'k', name:'幼兒園大樓', floors:2, r:[952,372,1026,418], wall:'#5d6873', roof:'gray', style:'k',
     rooms:['幼兒園：海豚班、綿羊班','四年甲～丁班'],
     desc:'操場東北側，南邊隔著通道就是活動中心，東側入口面向籃球場。' },
   { id:'kitchen', name:'廚房', floors:3, r:[1026,394,1050,426], wall:'#e9e1c9', roof:'gray', style:'kitchen',
@@ -362,7 +362,8 @@ const ROADS = [
   { name:'中山路', w:14, pts:[[1145,594],[1380,680],[1700,680],[1920,700]] },
   { name:'118 縣道', w:14, pts:[[1350,0],[1372,200],[1378,680],[1385,911]] },
   { name:'明德路', w:10, pts:[[1150,388],[1400,300],[1650,260],[1920,330]] },
-  { name:'老街', w:8, pts:[[1100,0],[1140,200],[1160,390]] },
+  { name:'老街', w:9, pts:[[1153,603],[1153,388],[1150,200],[1140,0]] },   // 校園東側，從中山路通到北平路
+  { name:'老街', w:7, pts:[[1153,490],[1230,488],[1320,470]] },
 ];
 ROADS.forEach(r=>{
   for(let i=0;i<r.pts.length-1;i++){
@@ -373,7 +374,7 @@ ROADS.forEach(r=>{
   }
 });
 function roadLabel(text, px, py){ const d=document.createElement('div'); d.className='blabel minor'; d.textContent=text; d.style.pointerEvents='none'; const o=new CSS2DObject(d); const [x,z]=P(px,py); o.position.set(x,1,z); scene.add(o); }
-roadLabel('北平路',880,282); roadLabel('中山路',840,552); roadLabel('中央街',736,400); roadLabel('鳳山溪',300,535);
+roadLabel('北平路',880,282); roadLabel('中山路',840,552); roadLabel('中央街',736,400); roadLabel('老街',1153,440); roadLabel('鳳山溪',300,535);
 
 /* 校園範圍 */
 const CAMPUS = [[789,250],[983,355],[1145,398],[1145,580],[998,578],[950,549],[902,531],[812,529],[758,539],[758,340]];
@@ -383,11 +384,12 @@ const GATE=[1104,1131];   // 校門開口（南側圍牆、中山路旁）
 function wallPiece(a,b){ const [x1,z1]=P(...a),[x2,z2]=P(...b); const len=Math.hypot(x2-x1,z2-z1);
   const w=new THREE.Mesh(new THREE.BoxGeometry(len,1.4,.4), mat('#e9e6dd')); w.position.set((x1+x2)/2,.7,(z1+z2)/2); w.rotation.y=-Math.atan2(z2-z1,x2-x1); w.castShadow=true; scene.add(w); }
 const GATE2=[952,963];   // 側門開口（西南角、看台南端與第一棟西端之間）
+const GATE3=[1004,1013]; // 北平路側門（幼兒園大樓旁）
 for(let i=0;i<CAMPUS.length;i++){
   const a=CAMPUS[i], b=CAMPUS[(i+1)%CAMPUS.length];
   const [p,q]=a[0]<b[0]?[a,b]:[b,a];
   const at=x=>[x, p[1]+(q[1]-p[1])*(x-p[0])/(q[0]-p[0])];
-  const cuts=(a[1]>520 && b[1]>520) ? [GATE,GATE2].filter(([g0,g1])=>p[0]<g0 && q[0]>g1).sort((u,v)=>u[0]-v[0]) : [];
+  const cuts=[[...GATE,578],[...GATE2,555],[...GATE3,362]].filter(([g0,g1,gy])=>p[0]<g0 && q[0]>g1 && Math.abs(at(g0)[1]-gy)<20).map(g=>g.slice(0,2)).sort((u,v)=>u[0]-v[0]);
   if(!cuts.length){ wallPiece(a,b); continue; }
   let s=p; cuts.forEach(([g0,g1])=>{ wallPiece(s,at(g0)); s=at(g1); }); wallPiece(s,q);
 }
@@ -581,7 +583,7 @@ flat(rectGeom(1068,425,1127,446), '#7fa463', .16);
       g.fillStyle='#2f2f35'; for(let x=40;x<W;x+=90){ const y=18+(x%3)*8; g.beginPath(); g.ellipse(x,y+22,8,6,-.4,0,Math.PI*2); g.fill(); g.fillRect(x+6,y,2.5,22); } });
     const m=new THREE.Mesh(new THREE.PlaneGeometry(len,1.3), new THREE.MeshStandardMaterial({map:tx,roughness:.8})); m.position.set((a+b)/2,.7,(za+zb)/2+.22); scene.add(m); }
   // 校門前中山路的斑馬線
-  { const sm=mat('#f2f2ee',{roughness:.9}); for(let k=0;k<6;k++){ const [x,z]=P((GATE[0]+GATE[1])/2,587+k*2.2); const st=new THREE.Mesh(new THREE.PlaneGeometry(6,.7), sm); st.rotation.x=-Math.PI/2; st.position.set(x,.08,z); scene.add(st); } }
+  { const sm=mat('#f2f2ee',{roughness:.9}), gm=mat('#3f9a83',{roughness:.9}); for(let k=0;k<6;k++){ const [x,z]=P((GATE[0]+GATE[1])/2,587+k*2.2); const st=new THREE.Mesh(new THREE.PlaneGeometry(6,.7), k%2?gm:sm); st.rotation.x=-Math.PI/2; st.position.set(x,.08,z); scene.add(st); } }
 }
 flat(rectGeom(1093,510,1109,558), '#bdb7ab', .17);
 
@@ -638,12 +640,167 @@ flat(rectGeom(1093,510,1109,558), '#bdb7ab', .17);
       const m=new THREE.Mesh(new THREE.PlaneGeometry(len,H-3), new THREE.MeshBasicMaterial({map:t,transparent:true,side:THREE.DoubleSide,depthWrite:false})); m.position.set((x1+x2)/2,(H+3)/2,(z1+z2)/2); m.rotation.y=-Math.atan2(z2-z1,x2-x1); scene.add(m); } }
 }
 
+/* 校園東側老街、北側北平路（依 Google 街景）：紅磚人行道、紅色路緣、鐵欄杆、北側側門、網狀黃線、對面的透天店屋 */
+{
+  const sh=o=>{ o.traverse(m=>{ if(m.isMesh){ m.castShadow=true; m.receiveShadow=true; } }); scene.add(o); return o; };
+  const brickM='#a8564a';
+  // 人行道：老街西側（學校這側）、北平路南側（學校這側）
+  flat(rectGeom(1145.5,398,1148.6,597), brickM, .09);
+  flat(rectGeom(1157.6,392,1159.6,600), '#b9b6ae', .09);
+  [[[983,355],[1145,398]],[[860,288],[983,355]]].forEach(([a,b])=>flat(new THREE.ShapeGeometry(shapeFrom([[a[0],a[1]-4.6],[b[0],b[1]-4.6],[b[0],b[1]-.4],[a[0],a[1]-.4]])), brickM, .09));
+  const curb=(a,b)=>{ const [x1,z1]=P(...a),[x2,z2]=P(...b); const len=Math.hypot(x2-x1,z2-z1); const m=new THREE.Mesh(new THREE.BoxGeometry(len,.18,.22), mat('#c8382f')); m.position.set((x1+x2)/2,.12,(z1+z2)/2); m.rotation.y=-Math.atan2(z2-z1,x2-x1); scene.add(m); };
+  curb([1148.7,398],[1148.7,597]); curb([983,350.4],[1145,393.4]); curb([860,283.4],[983,350.4]);
+  // 北平路側學校圍牆上的深咖啡色鐵欄杆（幼兒園大樓到老街）
+  { const bars=new THREE.InstancedMesh(new THREE.BoxGeometry(.05,1.15,.05), mat('#4a3a30'), 900); const t=new THREE.Object3D(); let n=0;
+    const yAt=x=>355+(398-355)*(x-983)/(1145-983);
+    [[983,GATE3[0]-.5],[GATE3[1]+.5,1144.5]].forEach(([xa,xb])=>{ const [ax,az]=P(xa,yAt(xa)), [bx,bz]=P(xb,yAt(xb)); const len=Math.hypot(bx-ax,bz-az);
+      for(let d=0; d<len && n<900; d+=.16){ const k=d/len; t.position.set(ax+(bx-ax)*k,1.4+.58,az+(bz-az)*k); t.updateMatrix(); bars.setMatrixAt(n++,t.matrix); }
+      const rail=new THREE.Mesh(new THREE.BoxGeometry(len,.06,.06), mat('#4a3a30')); rail.position.set((ax+bx)/2,2.5,(az+bz)/2); rail.rotation.y=-Math.atan2(bz-az,bx-ax); scene.add(rail); });
+    bars.count=n; scene.add(bars);
+    // 北平路側門：白色滑門與門柱
+    const [g1x,g1z]=P(GATE3[0],yAt(GATE3[0])), [g2x,g2z]=P(GATE3[1],yAt(GATE3[1])); const glen=Math.hypot(g2x-g1x,g2z-g1z);
+    [[g1x,g1z],[g2x,g2z]].forEach(([x,z])=>{ const p=sh(new THREE.Mesh(new THREE.BoxGeometry(.7,1.9,.7), mat('#d9d7d0'))); p.position.set(x,.95,z); });
+    const gate=new THREE.Group(); [.25,1.45].forEach(y=>{ const r=new THREE.Mesh(new THREE.BoxGeometry(glen-.8,.08,.08), mat('#f2f2ee')); r.position.y=y; gate.add(r); });
+    for(let i=0;i<=(glen-.8)/.2;i++){ const bar=new THREE.Mesh(new THREE.BoxGeometry(.05,1.25,.05), mat('#f2f2ee')); bar.position.set(-(glen-.8)/2+i*.2,.85,0); gate.add(bar); }
+    gate.position.set((g1x+g2x)/2,0,(g1z+g2z)/2); gate.rotation.y=-Math.atan2(g2z-g1z,g2x-g1x); sh(gate);
+    flat(new THREE.ShapeGeometry(shapeFrom([[GATE3[0],yAt(GATE3[0])],[GATE3[1],yAt(GATE3[1])],[GATE3[1],yAt(GATE3[1])+14],[GATE3[0],yAt(GATE3[0])+14]])), '#c9c6bc', .12); }
+  // 路口的黃色網狀線與斑馬線
+  const yb=(cx,cy,wp,hp)=>{ const [x0,z0]=P(cx-wp/2,cy-hp/2), [x1,z1]=P(cx+wp/2,cy+hp/2); const pts=[]; const lm=new THREE.LineBasicMaterial({color:0xe8c234});
+    const L=(a,b)=>scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(a[0],.1,a[1]),new THREE.Vector3(b[0],.1,b[1])]), lm));
+    L([x0,z0],[x1,z0]); L([x1,z0],[x1,z1]); L([x1,z1],[x0,z1]); L([x0,z1],[x0,z0]);
+    for(let k=1;k<4;k++){ const fx=x0+(x1-x0)*k/4, fz=z0+(z1-z0)*k/4; L([fx,z0],[fx,z1]); L([x0,fz],[x1,fz]); } };
+  yb(1153,595,12,12); yb(1153,389,11,11); yb(1008,368,9,8);
+  const zebra=(cx,cy,alongX,n)=>{ for(let k=0;k<n;k++){ const [x,z]=alongX?P(cx-5+k*2,cy):P(cx,cy-5+k*2); const st=new THREE.Mesh(new THREE.PlaneGeometry(alongX?.7:4,alongX?4:.7), mat('#f2f2ee')); st.rotation.x=-Math.PI/2; st.position.set(x,.09,z); scene.add(st); } };
+  zebra(1153,400,false,5); zebra(1140,388,true,6);
+
+  /* 透天店屋：3～4 層的老街屋，一樓鐵捲門或店面，樓上陽台鐵窗 */
+  const TV=[ {wall:'#c9c4b8'}, {wall:'#d8d2c4'}, {wall:'#b5afa3'}, {wall:'#e3dccd'}, {wall:'#a5574a', brick:true}, {wall:'#cfd8d2'}, {wall:'#8fae98'}, {wall:'#e2cfc8', arch:true}, {wall:'#d9d4c9'} ];
+  const htCache=new Map();
+  const houseTex=(v,floors)=>{ const key=v+'-'+floors; if(htCache.has(key)) return htCache.get(key);
+    const c=document.createElement('canvas'); c.width=128; c.height=80*floors; const g=c.getContext('2d'); const T=TV[v];
+    g.fillStyle=T.wall; g.fillRect(0,0,128,c.height);
+    if(T.brick){ g.fillStyle='#00000022'; for(let y=0;y<c.height;y+=6){ g.fillRect(0,y,128,1); for(let x=(y/6)%2?5:0;x<128;x+=10) g.fillRect(x,y,1,6); } }
+    else { g.fillStyle='#00000008'; for(let i=0;i<300;i++) g.fillRect(Math.random()*128,Math.random()*c.height,3,3); }
+    for(let f=0;f<floors;f++){ const y0=c.height-(f+1)*80;
+      g.fillStyle='#00000022'; g.fillRect(0,y0+76,128,4);
+      if(f===0){ if(v%3===0){ g.fillStyle='#8d9196'; g.fillRect(10,y0+20,108,58); g.fillStyle='#00000025'; for(let y=y0+22;y<y0+78;y+=4) g.fillRect(10,y,108,1); }
+        else { g.fillStyle='#2f3a3f'; g.fillRect(10,y0+24,108,54); g.fillStyle=['#c8382f','#2f62b5','#e8c234','#f2f2ee'][v%4]; g.fillRect(14,y0+8,100,13); } }
+      else { const arched=T.arch && f===floors-1;
+        g.fillStyle='#e9e7e1'; g.fillRect(14,y0+14,100,46); g.fillStyle='#4b5a62'; g.fillRect(18,y0+18,92,38);
+        if(arched){ g.fillStyle=T.wall; g.fillRect(14,y0+14,100,14); g.fillStyle='#4b5a62'; g.beginPath(); g.arc(64,y0+30,46,Math.PI,0); g.fill(); }
+        g.fillStyle='#d6d6d0'; for(let x=18;x<110;x+=6) g.fillRect(x,y0+18,1.5,38);
+        if(f%2===1 || v%2===0){ g.fillStyle='#9a9a94'; g.fillRect(6,y0+58,116,6); g.fillStyle='#c9c9c2'; for(let x=8;x<120;x+=5) g.fillRect(x,y0+46,1.5,12); }
+        if((f+v)%3===0){ g.fillStyle='#f4f4f0'; g.fillRect(96,y0+22,14,10); } }
+    }
+    g.fillStyle='#00000030'; g.fillRect(0,0,128,4);
+    const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace; t.anisotropy=4; htCache.set(key,t); return t; };
+  const house=(F,n,w,d,floors,v)=>{ const g=new THREE.Group(); const T=TV[v]; const fh=3.1, H=floors*fh;
+    const wm=mat(T.wall), fm=new THREE.MeshStandardMaterial({map:houseTex(v,floors),roughness:.85});
+    const box=new THREE.Mesh(new THREE.BoxGeometry(w,H,d), [wm,wm,mat('#8f8b84'),wm,fm,wm]); box.position.y=H/2; g.add(box);
+    if(v%2===1){ const aw=new THREE.Mesh(new THREE.BoxGeometry(w,.12,1.6), mat(['#5f8a8a','#9a958c','#3c4a52'][v%3])); aw.position.set(0,fh,d/2+.8); g.add(aw); }
+    if((v+floors)%4===0){ const shed=new THREE.Mesh(new THREE.BoxGeometry(w*.7,2,d*.5), mat('#b9b6ae')); shed.position.set(0,H+1,-d*.15); g.add(shed); }
+    g.position.set(F.x-n.x*d/2,0,F.z-n.z*d/2); g.rotation.y=Math.atan2(n.x,n.z); sh(g); };
+  // 沿道路一側排一列店屋：side=+1/-1 決定在路的哪一邊，off 是門面離道路中心線的距離（公尺）
+  const row=(ptsPx, side, off, skip=[], dd=0, fl=0)=>{ for(let i=0;i<ptsPx.length-1;i++){ const [ax,az]=P(...ptsPx[i]), [bx,bz]=P(...ptsPx[i+1]); const len=Math.hypot(bx-ax,bz-az); const tx=(bx-ax)/len, tz=(bz-az)/len;
+      const hs={x:-tz*side, z:tx*side}; const n={x:-hs.x, z:-hs.z};
+      let s=0; while(s<len-3){ const w=4.4+rnd()*2.2; const mid=s+w/2; const px=ptsPx[i][0]+(ptsPx[i+1][0]-ptsPx[i][0])*mid/len, py=ptsPx[i][1]+(ptsPx[i+1][1]-ptsPx[i][1])*mid/len;
+        if(!skip.some(([a,b,c,d])=>px>=a&&px<=b&&py>=c&&py<=d)){ const r=rnd(); const floors=r<.12?2:r<.55?3:4; const v=Math.floor(rnd()*TV.length);
+          house({x:ax+tx*mid+hs.x*off, z:az+tz*mid+hs.z*off}, n, w-.15, dd||11+rnd()*3, fl||floors, v); }
+        s+=w; } } };
+  row([[1153,396],[1153,598]], -1, 3.6, [[1140,1170,483,497]]);            // 老街東側
+  row([[987,344],[1146,387]], -1, 5.6);                                      // 北平路北側（學校對面）
+  row([[1162,387],[1400,381]], -1, 5.6);                                     // 北平路北側（老街以東）
+  row([[1186,389],[1400,384]], 1, 5.6, [[1290,1340,375,400]]);              // 北平路南側（老街以東）
+
+  /* ===== 中山路（竹16鄉道）沿線：校園南側與西南側（依街景 13～26） ===== */
+  const ZS=[[740,548],[905,541],[958,575],[1000,599],[1145,595]];          // 中山路中心線（與 ROADS 相同）
+  const ZSE=[[1145,594],[1380,680]];
+  // 沿著道路取樣：回傳每隔 step 公尺的點、切線與指向北側（學校那側）的法線
+  const along=(pts, fromX, toX, step, cb)=>{ for(let i=0;i<pts.length-1;i++){ const [ax,az]=P(...pts[i]), [bx,bz]=P(...pts[i+1]); const len=Math.hypot(bx-ax,bz-az); const tx=(bx-ax)/len, tz=(bz-az)/len; const nx=tz, nz=-tx;
+      for(let s=step/2; s<len; s+=step){ const px=pts[i][0]+(pts[i+1][0]-pts[i][0])*s/len; if(px<fromX||px>toX) continue; cb(ax+tx*s, az+tz*s, tx, tz, nx, nz); } } };
+  const HALF=15*S/2;
+  // 學校側紅磚人行道（校門到老街口、西南角）
+  [[[998,578],[1145,580]],[[760,540],[830,532]]].forEach(([a,b])=>flat(new THREE.ShapeGeometry(shapeFrom([[a[0],a[1]+.5],[b[0],b[1]+.5],[b[0],b[1]+4.5],[a[0],a[1]+4.5]])), '#a8564a', .09));
+  // 路邊停車格（白線、垂直停車）與停著的車
+  { const lm=new THREE.LineBasicMaterial({color:0xf2f2ee}); const carCols=['#2b2f33','#d9dcdc','#8d9196','#5a6470','#f2f2ee','#3a4a6a','#7a2f2f','#c9c4b8'];
+    const stalls=(fromX,toX)=>along(ZS, fromX, toX, 2.6, (x,z,tx,tz,nx,nz)=>{
+      const e=HALF-.15, dep=5; const a=new THREE.Vector3(x+nx*e,.1,z+nz*e), b=new THREE.Vector3(x+nx*(e-dep),.1,z+nz*(e-dep));
+      const off=new THREE.Vector3(tx*1.3,0,tz*1.3); scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([a.clone().add(off), b.clone().add(off)]), lm));
+      if(rnd()<.55){ const c=new THREE.Group(); const col=carCols[Math.floor(rnd()*carCols.length)];
+        const body=new THREE.Mesh(new THREE.BoxGeometry(1.75,.75,4.2), mat(col,{roughness:.4,metalness:.3})); body.position.y=.6; c.add(body);
+        const cab=new THREE.Mesh(new THREE.BoxGeometry(1.6,.6,2.2), mat('#3a454c',{roughness:.2,metalness:.4})); cab.position.set(0,1.25,-.2); c.add(cab);
+        c.position.set(x+nx*(e-2.5),0,z+nz*(e-2.5)); c.rotation.y=Math.atan2(nx,nz); sh(c); } });
+    stalls(770,948); stalls(1042,1098); }
+  // 中山路南側：水泥護欄，外面是長滿樹叢的陡坡
+  { const bm=mat('#9a9a94'); along(ZS, 958, 1140, 2, (x,z,tx,tz,nx,nz)=>{ const m=new THREE.Mesh(new THREE.BoxGeometry(.3,.85,2.05), bm); m.position.set(x-nx*(HALF+.4),.43,z-nz*(HALF+.4)); m.rotation.y=Math.atan2(tx,tz); m.castShadow=true; scene.add(m); });
+    const bush=new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1,1), mat('#ffffff',{flatShading:true}), 260); const t=new THREE.Object3D(), col=new THREE.Color(); let n=0;
+    along(ZS, 905, 1140, 1.6, (x,z,tx,tz,nx,nz)=>{ for(let k=0;k<3 && n<260;k++){ const d=HALF+1.6+k*2.4+rnd()*1.2; const r=1+rnd()*1.3; t.position.set(x-nx*d+(rnd()-.5),r*.55-(k*.6),z-nz*d); t.scale.set(r,r*.8,r); t.updateMatrix(); bush.setMatrixAt(n,t.matrix); bush.setColorAt(n++, col.set(['#4f7d3c','#5e8c45','#6b9650','#3f6d36'][Math.floor(rnd()*4)])); } });
+    bush.count=n; bush.castShadow=true; scene.add(bush); }
+  // 校門西側、圍牆外的兩棟民宅（灰色老公寓、白色透天）
+  row([[1015,598.6],[1040,597.9]], -1, HALF+.6, [], 5.6, 4);
+  // 側門到民宅之間：草坡上的綠色鐵網圍籬
+  { const yAt=x=>549+(578-549)*(x-950)/(998-950); const [ax,az]=P(GATE2[1]+16,yAt(GATE2[1]+16)), [bx,bz]=P(998,578); const len=Math.hypot(bx-ax,bz-az);
+    const net=new THREE.Mesh(new THREE.PlaneGeometry(len,1.4), new THREE.MeshStandardMaterial({color:'#5f8f6a',transparent:true,opacity:.45,side:THREE.DoubleSide})); net.position.set((ax+bx)/2,2.1,(az+bz)/2); net.rotation.y=-Math.atan2(bz-az,bx-ax); scene.add(net);
+    const ext=new THREE.Mesh(new THREE.PlaneGeometry(22,1.4), net.material); const [cx2,cz2]=P(1008,578.4); ext.position.set(cx2,2.1,cz2); scene.add(ext); }
+  // 校門路口對面（老街以東、中山路兩側）的老街屋
+  row([[1190,611],[1340,665]], -1, HALF+1.2, [], 0, 0);
+  row([[1150,604],[1340,673]], 1, HALF+1.2, [], 0, 0);
+  // 西南角：中央街西側的派出所（附無線電鐵塔）與電熱水器行
+  { const [x1,z1]=P(700,478), [x2,z2]=P(733,508); const w=x2-x1, d=z2-z1; const ps=new THREE.Group();
+    const wallM=new THREE.MeshStandardMaterial({map:houseTex(1,3),roughness:.85}), side=mat('#d8d2c4');
+    const box=new THREE.Mesh(new THREE.BoxGeometry(w,9.3,d), [wallM,side,mat('#9a958c'),side,side,side]); box.position.y=4.65; ps.add(box);
+    const steel=mat('#b8bcbc',{metalness:.5,roughness:.4});
+    for(let i=0;i<4;i++){ const a=i*Math.PI/2+Math.PI/4; const leg=new THREE.Mesh(new THREE.CylinderGeometry(.06,.08,9,6), steel); leg.position.set(Math.cos(a)*.8,9.3+4.5,Math.sin(a)*.8); leg.rotation.set(Math.sin(a)*.08,0,-Math.cos(a)*.08); ps.add(leg); }
+    for(let k=0;k<6;k++){ const ring=new THREE.Mesh(new THREE.TorusGeometry(.95-k*.06,.03,4,4), steel); ring.rotation.x=Math.PI/2; ring.position.y=10+k*1.4; ps.add(ring); }
+    ps.position.set((x1+x2)/2,0,(z1+z2)/2); sh(ps);
+    const lbl=document.createElement('div'); lbl.className='blabel minor'; lbl.textContent='派出所'; lbl.style.pointerEvents='none'; const o=new CSS2DObject(lbl); o.position.set((x1+x2)/2,12,(z1+z2)/2); scene.add(o);
+    const [s1,t1]=P(714,518), [s2,t2]=P(733,537); const shed=new THREE.Group();
+    const red=canvasTex(128,64,(g,W,H)=>{ g.fillStyle='#9e3a32'; g.fillRect(0,0,W,H); g.fillStyle='#00000030'; for(let x=0;x<W;x+=4) g.fillRect(x,0,1.5,H); g.fillStyle='#2f2a4a'; g.fillRect(0,4,W,14); });
+    const sb=new THREE.Mesh(new THREE.BoxGeometry(s2-s1,4,t2-t1), [new THREE.MeshStandardMaterial({map:red}),mat('#9e3a32'),mat('#7a2f2a'),mat('#9e3a32'),mat('#9e3a32'),mat('#9e3a32')]); sb.position.y=2; shed.add(sb);
+    shed.position.set((s1+s2)/2,0,(t1+t2)/2); sh(shed); }
+  // 操場西側沿網球場也有一排高聳防護網柱
+  { const pm=mat('#9a9c98'), H=15; const poles=[[757,345],[757,395],[757,445],[757,495],[790,533]];
+    const net=canvasTex(256,128,(c,w,h)=>{ c.clearRect(0,0,w,h); c.strokeStyle='rgba(40,44,46,.5)'; for(let i=0;i<w;i+=6){ c.beginPath(); c.moveTo(i,0); c.lineTo(i,h); c.stroke(); } for(let j=0;j<h;j+=6){ c.beginPath(); c.moveTo(0,j); c.lineTo(w,j); c.stroke(); } }); net.wrapS=net.wrapT=THREE.RepeatWrapping;
+    poles.forEach(([px,py])=>{ const [x,z]=P(px,py); const p=sh(new THREE.Mesh(new THREE.CylinderGeometry(.14,.2,H,8), pm)); p.position.set(x,H/2,z); });
+    for(let i=0;i<poles.length-1;i++){ const [x1,z1]=P(...poles[i]),[x2,z2]=P(...poles[i+1]); const len=Math.hypot(x2-x1,z2-z1); const t=net.clone(); t.needsUpdate=true; t.repeat.set(len/3,3);
+      const m=new THREE.Mesh(new THREE.PlaneGeometry(len,H-3), new THREE.MeshBasicMaterial({map:t,transparent:true,side:THREE.DoubleSide,depthWrite:false})); m.position.set((x1+x2)/2,(H+3)/2,(z1+z2)/2); m.rotation.y=-Math.atan2(z2-z1,x2-x1); scene.add(m); } }
+  // 西南角校園圍牆上的咖啡色鐵欄杆（網球場邊）
+  { const bars=new THREE.InstancedMesh(new THREE.BoxGeometry(.05,1.1,.05), mat('#5a4334'), 600); const t=new THREE.Object3D(); let n=0;
+    [[[758,340],[758,539]],[[758,539],[812,529]]].forEach(([a,b])=>{ const [ax,az]=P(...a),[bx,bz]=P(...b); const len=Math.hypot(bx-ax,bz-az); for(let d=0; d<len && n<600; d+=.2){ const k=d/len; t.position.set(ax+(bx-ax)*k,1.4+.55,az+(bz-az)*k); t.updateMatrix(); bars.setMatrixAt(n++,t.matrix); } });
+    bars.count=n; scene.add(bars); }
+}
+
 /* 建築（每層一個方塊，可依樓層切換） */
 const texCache = new Map();
 function facadeTex(wall, len, h, glass=true, style=''){
   const key=wall+'|'+Math.round(len)+'|'+h+glass+style; if(texCache.has(key)) return texCache.get(key);
   const cols=Math.max(1,Math.round(len/4)); const c=document.createElement('canvas'); c.width=Math.min(2048,cols*64); c.height=64; const g=c.getContext('2d');
   g.fillStyle=wall; g.fillRect(0,0,c.width,64);
+  if(style==='b3' || style==='b3top'){
+    // 第三棟（依北平路街景）：粉紅小磁磚、米白窗框；頂樓是一整排拱形窗
+    const w=c.width/cols;
+    g.fillStyle='#00000010'; for(let y=0;y<64;y+=3) g.fillRect(0,y,c.width,1); for(let x=0;x<c.width;x+=3) g.fillRect(x,0,1,64);
+    g.fillStyle='#d9a9a0'; g.fillRect(0,0,c.width,5); g.fillRect(0,58,c.width,6);
+    for(let i=0;i<cols;i++){ const x0=i*w+8, ww=w-16;
+      g.fillStyle='#f1e9df';
+      if(style==='b3top'){ g.beginPath(); g.moveTo(x0-3,52); g.lineTo(x0-3,28); g.arc(x0+ww/2,28,ww/2+3,Math.PI,0); g.lineTo(x0+ww+3,52); g.closePath(); g.fill();
+        g.fillStyle='#4f6470'; g.beginPath(); g.moveTo(x0,50); g.lineTo(x0,28); g.arc(x0+ww/2,28,ww/2,Math.PI,0); g.lineTo(x0+ww,50); g.closePath(); g.fill();
+        g.strokeStyle='#f1e9df'; g.lineWidth=2; g.beginPath(); g.moveTo(x0+ww/2,12); g.lineTo(x0+ww/2,50); g.moveTo(x0,32); g.lineTo(x0+ww,32); g.stroke(); }
+      else { g.fillRect(x0-3,14,ww+6,38); g.fillStyle='#4f6470'; g.fillRect(x0,17,ww,32); g.fillStyle='#f1e9df'; g.fillRect(x0+ww/2-1,17,2,32); g.fillRect(x0,30,ww,2); }
+    }
+    const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace; t.anisotropy=4; texCache.set(key,t); return t;
+  }
+  if(style==='k'){
+    // 幼兒園大樓（依北平路街景）：灰藍小磁磚、藍色馬賽克腰帶、白框窗，點綴黃色與綠色牆板
+    const w=c.width/cols;
+    g.fillStyle='#ffffff10'; for(let y=0;y<64;y+=3) g.fillRect(0,y,c.width,1);
+    g.fillStyle='#3d6f9f'; g.fillRect(0,48,c.width,10); g.fillStyle='#ffffff30'; for(let x=0;x<c.width;x+=4) g.fillRect(x,48+(x%8?0:5),2,2);
+    for(let i=0;i<cols;i++){ const x0=i*w;
+      if(i%5===2){ g.fillStyle='#e8c33a'; g.fillRect(x0+10,10,w-20,34); continue; }
+      if(i%7===4){ g.fillStyle='#3f7d5a'; g.fillRect(x0+18,6,w-36,42); continue; }
+      g.fillStyle='#f2f2ee'; g.fillRect(x0+6,12,w-12,32); g.fillStyle='#3e4d58'; g.fillRect(x0+9,15,w-18,26); g.fillStyle='#f2f2ee'; g.fillRect(x0+w/2-1,15,2,26); }
+    const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace; t.anisotropy=4; texCache.set(key,t); return t;
+  }
   if(style==='kitchen'){
     // 米色小磁磚＋深綠壁柱與腰帶＋白框窗，每三格一個橘框圓窗
     const w=c.width/cols;
@@ -784,8 +941,8 @@ BUILDINGS.forEach(b=>{
     if(b.low && f>=b.low.floors) segs = segs.map(([a,c])=>[Math.max(a,b.low.x),c]).filter(([a,c])=>a<c);
     segs.forEach(([sx1,sx2])=>{
       const [ax]=P(sx1,0), [bx]=P(sx2,0); const sw=bx-ax;
-      const sideX=new THREE.MeshStandardMaterial({ map:facadeTex(b.wall,d,fh,!b.h,b.style), roughness:.85 });
-      const sideZ=new THREE.MeshStandardMaterial({ map:facadeTex(b.wall,sw,fh,!b.h,b.style), roughness:.85 });
+      const sideX=new THREE.MeshStandardMaterial({ map:facadeTex(b.wall,d,fh,!b.h,(b.styleTop && f===b.floors-1)?b.styleTop:b.style), roughness:.85 });
+      const sideZ=new THREE.MeshStandardMaterial({ map:facadeTex(b.wall,sw,fh,!b.h,(b.styleTop && f===b.floors-1)?b.styleTop:b.style), roughness:.85 });
       const topM = mat(b.wall);
       const m=new THREE.Mesh(new THREE.BoxGeometry(sw,fh,d), [sideX,sideX,topM,topM,sideZ,sideZ]);
       m.position.set((ax+bx)/2, f*fh+fh/2+.1, cz); m.castShadow=true; m.receiveShadow=true; m.userData={ type:'building', id:b.id, floor:f+1 };
@@ -808,6 +965,13 @@ BUILDINGS.forEach(b=>{
   el.addEventListener('click', e=>{ e.stopPropagation(); selectBuilding(b.id); });
   b.labelEl=el; b.label=new CSS2DObject(el); b.label.position.set(cx,H+3,cz); scene.add(b.label);
 });
+// 幼兒園大樓細節（依北平路街景）：很深的白色平屋頂挑簷與細白柱
+{
+  const b=BMAP.k, H=b.floors*FH+.1; const [x1,z1]=P(b.r[0],b.r[1]), [x2,z2]=P(b.r[2],b.r[3]); const w=x2-x1, cx=(x1+x2)/2;
+  const white=mat('#f1f0ec');
+  const eave=new THREE.Mesh(new THREE.BoxGeometry(w+3,.45,(z2-z1)+4.4), white); eave.position.set(cx,H+.35,(z1+z2)/2-.6); eave.castShadow=true; eave.userData={floor:2}; b.group.add(eave); b.slabs.push(eave);
+  for(let x=x1+1.5; x<=x2-1.5; x+=6){ const col=new THREE.Mesh(new THREE.BoxGeometry(.5,H,.5), white); col.position.set(x,H/2,z1-2.4); col.castShadow=true; col.userData={floor:1}; b.group.add(col); b.slabs.push(col); }
+}
 // 廚房細節（依現場照片）
 {
   const b=BMAP.kitchen, H=b.floors*FH+.1; const [x1,z1]=P(b.r[0],b.r[1]), [x2,z2]=P(b.r[2],b.r[3]); const w=x2-x1, cx=(x1+x2)/2;
@@ -933,6 +1097,7 @@ const walks=[]; walks.upper=[];
     if(pointInPoly(jx,jy,big)) continue;
     if(FIELDS.some(f=>pointInPoly(jx,jy,f))) continue;
     if(ROADS.some(r=>distLine(jx,jy,r.pts)<r.w*.5+9)) continue;
+    if(distLine(jx,jy,[[985,343],[1150,388],[1400,382]])<42 || (jx>1150 && distLine(jx,jy,[[1153,380],[1153,605]])<44) || distLine(jx,jy,[[1145,596],[1340,668]])<44 || (jx>690 && jx<737 && jy>470 && jy<560) || (jx>900 && jx<1140 && jy>560 && distLine(jx,jy,[[905,541],[958,575],[1000,599],[1145,595]])<75)) continue;   // 北平路、老街兩側改放透天店屋
     if(jx<760 && jy>500) continue;
     const near = Math.hypot(jx-1060,jy-460);
     const h=(4+rnd()*(near<420?10:7)+(rnd()<.06?12:0));
