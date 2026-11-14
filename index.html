@@ -290,7 +290,7 @@ const BUILDINGS = [
     rooms:['幼兒園：海豚班、綿羊班','四年甲～丁班'],
     desc:'操場東北側，南邊隔著通道就是活動中心，東側入口面向籃球場。' },
   { id:'kitchen', name:'廚房', floors:3, r:[1038,394,1062,412.6], wall:'#e9e1c9', roof:'gray', style:'kitchen',
-    rooms:['廚房','',''], desc:'三層樓的廚房（怡德樓），東側直接接著第三棟，正面朝南對著籃球場：深綠壁柱分成三開間，米色磁磚牆上左右是橘框圓窗、中間是白框格子窗與金色「怡德樓」字，二樓掛著棒球隊宿舍招牌；頂上是波浪形的鮭紅色女兒牆，一樓有黑色雨遮與鐵捲門。' },
+    rooms:['廚房','',''], desc:'三層樓的廚房（怡欣樓），東側直接接著第三棟，正面朝南對著籃球場：深綠壁柱分成三開間，米色磁磚牆上左右是橘框圓窗、中間是白框格子窗與金色「怡欣樓」字，二樓掛著棒球隊宿舍招牌；頂上是波浪形的鮭紅色女兒牆，一樓有黑色雨遮與鐵捲門。' },
   { id:'gym', name:'活動中心', floors:1, h:9, r:[961,432,1027,480], wall:'#ecebe6', roof:'gray', custom:true,
     rooms:['禮堂、體育器材室、樂活教室'],
     desc:'「學生活動中心」兼作禮堂：米色斜瓦屋頂、紅褐色窗櫺的高窗帶，東端是寫著金色大字的灰色塔樓，東面朝籃球場：大拱形白磚牆、看書唱歌的女孩壁畫、三個拱窗，兩座白磁磚戶外樓梯和紅磚壓頂的花台。' },
@@ -1486,7 +1486,7 @@ BUILDINGS.forEach(b=>{
   const eave=new THREE.Mesh(new THREE.BoxGeometry(w+3,.45,(z2-z1)+4.4), white); eave.position.set(cx,H+.35,(z1+z2)/2-.6); eave.castShadow=true; eave.userData={floor:2}; b.group.add(eave); b.slabs.push(eave);
   for(let x=x1+1.5; x<=x2-1.5; x+=6){ const col=new THREE.Mesh(new THREE.BoxGeometry(.5,H,.5), white); col.position.set(x,H/2,z1-2.4); col.castShadow=true; col.userData={floor:1}; b.group.add(col); b.slabs.push(col); }
 }
-// 廚房細節（依籃球場實景照片）：正面三開間，深綠壁柱、米色磁磚、橘框圓窗，中間格子窗與「怡德樓」金字，頂上是波浪形女兒牆
+// 廚房細節（依籃球場實景照片）：正面三開間，深綠壁柱、米色磁磚、橘框圓窗，中間格子窗與「怡欣樓」金字，頂上是波浪形女兒牆
 {
   const b=BMAP.kitchen, H=b.floors*FH+.1; const [x1,z1]=P(b.r[0],b.r[1]), [x2,z2]=P(b.r[2],b.r[3]); const w=x2-x1, cx=(x1+x2)/2;
   const salmon=mat('#c98f72'), green=mat('#3d5a4b');
@@ -1511,9 +1511,9 @@ BUILDINGS.forEach(b=>{
     // 中間開間：白框格子窗（三樓、二樓）
     [[28,108],[186,262]].forEach(([ya,yb])=>{ g.fillStyle='#f2f2ee'; g.fillRect(X(206),ya,X(124),yb-ya); g.fillStyle='#6d8c99'; g.fillRect(X(212),ya+5,X(112),yb-ya-10);
       g.fillStyle='#f2f2ee'; for(let i=1;i<4;i++) g.fillRect(X(212)+X(112)*i/4-1.5,ya+5,3,yb-ya-10); for(let i=1;i<3;i++) g.fillRect(X(212),ya+5+(yb-ya-10)*i/3-1.5,X(112),3); });
-    // 金色「怡德樓」
+    // 金色「怡欣樓」
     g.fillStyle='#c9a13a'; g.font=`bold ${Math.round(22*k)}px "Noto Serif TC","PMingLiU",serif`; g.textAlign='center'; g.textBaseline='middle';
-    ['怡','德','樓'].forEach((ch,i)=>g.fillText(ch,X(222+i*46),168));
+    ['怡','欣','樓'].forEach((ch,i)=>g.fillText(ch,X(222+i*46),168));
     // 左開間二樓下緣：棒球隊宿舍招牌
     g.fillStyle='#fbfbf8'; g.fillRect(X(28),250,X(136),30); g.strokeStyle='#9aa1a6'; g.lineWidth=1.5; g.strokeRect(X(28),250,X(136),30);
     g.fillStyle='#c0342a'; g.font=`bold ${Math.round(13*k)}px "Noto Sans TC","Microsoft JhengHei",sans-serif`; g.fillText('關西國小棒球隊宿舍',X(98),262);
@@ -2499,6 +2499,7 @@ addEventListener('keydown', e=>{ if(e.key==='Escape' && !$('#pano-wrap').hidden)
     if(o.isInstancedMesh){ let ch=false; for(let i=0;i<o.count;i++){ o.getMatrixAt(i,m4); v.setFromMatrixPosition(m4); const h=inHigh(v.x,v.z)?RISE:elevOut(v.x,v.z); if(h){ m4.elements[13]+=h; o.setMatrixAt(i,m4); ch=true; } } if(ch) o.instanceMatrix.needsUpdate=true; return; }
     box.setFromObject(o); if(box.isEmpty()){ if(o.isCSS2DObject) o.position.y+=inHigh(o.position.x,o.position.z)?RISE:elevOut(o.position.x,o.position.z); return; } box.getCenter(v);
     if(inHigh(v.x,v.z)){ o.position.y+=RISE; return; }
+    if(pointInPoly(v.x/S+OX,v.z/S+OY,CAMPUS)) return;   // 校園裡的東西（包含整片校園地面）不跟著校外的地勢動
     const hs=[[box.min.x,box.min.z],[box.max.x,box.min.z],[box.min.x,box.max.z],[box.max.x,box.max.z],[v.x,v.z]].map(([x,z])=>elevOut(x,z)), lo=Math.min(...hs), hi=Math.max(...hs);
     if(hi<=0) return;
     const ext=Math.max(box.max.x-box.min.x, box.max.z-box.min.z);
