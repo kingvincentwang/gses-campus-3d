@@ -383,7 +383,12 @@ const inPit=(x,z)=>pointInPoly(x/S+OX, z/S+OY, PIT);
    RISE 就是第一棟西段高台的高度，樓梯和坡道爬上去剛好接到一樓走廊 */
 const HIGH=[[1061.95,377.5],[1146,399.5],[1146,581],[1074.8,580],[1079.9,546],[1079.9,536.2],[1061.95,536.2]], RISE=1.4;
 const inHigh=(x,z)=>pointInPoly(x/S+OX, z/S+OY, HIGH);
-const baseY=(x,z)=>inPit(x,z)?-PIT_D:(inHigh(x,z)?RISE:0);
+/* 校外的地勢（依現場）：老街和校門口前的中山路跟第一棟前的空地同高；中山路從校門往西是一路往下的斜坡，到側門一帶降到和操場那側同高。
+   老街一路平的接到北平路，校園北側的北平路也和校園同高；只有到廚房、幼兒園那一側（校內本來就低一截）才往西斜下去 */
+const clamp01=t=>Math.max(0,Math.min(1,t));
+const elevOut=(x,z)=>{ const px=x/S+OX, py=z/S+OY; if(px<1000 || pointInPoly(px,py,CAMPUS)) return 0;
+  const aE=px>=1146?1:0, aS=py>545?clamp01((px-1000)/100):0, aN=py<420?clamp01((px-1038)/24):0; return RISE*Math.max(aE,aS,aN); };
+const baseY=(x,z)=>inPit(x,z)?-PIT_D:(inHigh(x,z)?RISE:elevOut(x,z));
 /* 地面、田地與溪流 */
 { const g=new THREE.Shape(); g.moveTo(-1500,-1500); g.lineTo(1500,-1500); g.lineTo(1500,1500); g.lineTo(-1500,1500); g.lineTo(-1500,-1500); g.holes.push(pitHole(),rampHole()); flat(new THREE.ShapeGeometry(g), '#9fb48a', -0.05); }
 const FIELDS = [[[745,640],[1240,640],[1290,911],[700,911]], [[430,640],[700,700],[690,911],[480,911]], [[0,560],[330,520],[420,700],[300,911],[0,911]], [[0,0],[480,0],[430,170],[150,180],[0,150]]];
@@ -393,13 +398,13 @@ for(let i=0;i<RIVER.length-1;i++){ const [x1,z1]=P(...RIVER[i]),[x2,z2]=P(...RIV
 
 /* 道路 */
 const ROADS = [
-  { name:'北平路', w:14, pts:[[640,178],[800,236],[985,343],[1150,388],[1400,382]] },
-  { name:'中山路', w:15, pts:[[360,480],[560,532],[740,548],[905,541],[958,575],[1000,599],[1145,595],[1230,650],[1290,800],[1320,911]] },
+  { name:'北平路', w:14, pts:[[640,178],[800,236],[985,343],[1038,357.5],[1062,364],[1150,388],[1400,382]] },
+  { name:'中山路', w:15, pts:[[360,480],[560,532],[740,548],[905,541],[958,575],[1000,599],[1100,596.2],[1145,595],[1230,650],[1290,800],[1320,911]] },
   { name:'中央街', w:11, pts:[[760,150],[742,300],[738,430],[740,548]] },
   { name:'中山路', w:14, pts:[[1145,594],[1380,680],[1700,680],[1920,700]] },
-  { name:'118 縣道', w:14, pts:[[1350,0],[1372,200],[1378,680],[1385,911]] },
+  { name:'118 縣道', w:14, pts:[[1350,0],[1372,200],[1374.4,392],[1374.8,425],[1378,680],[1385,911]] },
   { name:'明德路', w:10, pts:[[1150,388],[1400,300],[1650,260],[1920,330]] },
-  { name:'老街', w:9, pts:[[1153,603],[1153,388],[1150,200],[1140,0]] },   // 校園東側，從中山路通到北平路
+  { name:'老街', w:9, pts:[[1153,603],[1153,425],[1153,392],[1153,388],[1150,200],[1140,0]] },   // 校園東側，從中山路通到北平路
   { name:'老街', w:7, pts:[[1153,490],[1230,488],[1320,470]] },
 ];
 ROADS.forEach(r=>{
@@ -871,7 +876,7 @@ flat(rectGeom(1079,469,1117,497), '#4f7a5e', .17);
       [['#f2c8d8',30,48],['#cfe3f2',90,46],['#fff2b0',150,52],['#f4f0e6',200,60]].forEach(([c,x,y])=>{ g.fillStyle=c; g.fillRect(x,y,40,54); }); });
     sh(new THREE.Mesh(new THREE.BoxGeometry(3,1.85,.12), [wf,wf,wf,wf,new THREE.MeshStandardMaterial({map:nbT,roughness:.8}),wf])).position.set(nb,1.85,gz+.42);
     sh(new THREE.Mesh(new THREE.BoxGeometry(3.4,.18,.4), wf)).position.set(nb,2.85,gz+.42);
-    const gw2=sh(new THREE.Mesh(new THREE.BoxGeometry(X(GATE[1]+27)-X(GATE[1]+18),1.6,.4), mat('#b2b1ab',{roughness:.95}))); gw2.position.set((X(GATE[1]+18)+X(GATE[1]+27))/2,.9,gz+.1); }
+    const gw2=sh(new THREE.Mesh(new THREE.BoxGeometry(X(GATE[1]+19.5)-X(GATE[1]+18),1.6,.4), mat('#b2b1ab',{roughness:.95}))); gw2.position.set((X(GATE[1]+18)+X(GATE[1]+19.5))/2,.9,gz+.1); }
   // 警衛室後面三棵大王椰子（光滑灰白樹幹）
   [[GATE[1]+8,574.5],[GATE[1]+12.5,575.5],[GATE[1]+17.5,575]].forEach(([qx,qy],i)=>{ const [x,z]=P(qx,qy); const h=13+i*.8; const tr=sh(new THREE.Mesh(new THREE.CylinderGeometry(.24,.32,h,10), mat('#bdb8ad'))); tr.position.set(x,h/2,z);
     const cs=sh(new THREE.Mesh(new THREE.CylinderGeometry(.26,.24,1.6,9), mat('#6f9a3a'))); cs.position.set(x,h+.6,z);
@@ -2485,12 +2490,26 @@ addEventListener('keydown', e=>{ if(e.key==='Escape' && !$('#pano-wrap').hidden)
   });
   // 高地：中心落在 HIGH 裡的物件整個往上抬 RISE；第一棟跨在邊界上，整棟另外抬（它貼著低地的高台、樓梯、坡道等放在不跟著抬的 yard 群組裡）
   BMAP.b1.group.position.y+=RISE;
+  // 校外跟著 elevOut 的地勢走：小東西整個抬，跨在斜坡上的長條（路面、人行道、圍牆）逐頂點貼著坡面
+  const disp=o=>{ o.geometry=o.geometry.clone(); o.updateMatrixWorld(true); const pa=o.geometry.attributes.position, inv=new THREE.Matrix4().copy(o.matrixWorld).invert(), w=new THREE.Vector3();
+    for(let i=0;i<pa.count;i++){ w.fromBufferAttribute(pa,i).applyMatrix4(o.matrixWorld); w.y+=elevOut(w.x,w.z); w.applyMatrix4(inv); pa.setXYZ(i,w.x,w.y,w.z); }
+    pa.needsUpdate=true; o.geometry.computeBoundingBox(); o.geometry.computeBoundingSphere(); o.geometry.computeVertexNormals(); };
   [...scene.children].forEach(o=>{
     if(o===stageG || o===pinGroup || o===BMAP.b1.group || o.userData.yard || o.isLight || o.isCamera) return;
-    if(o.isInstancedMesh){ let ch=false; for(let i=0;i<o.count;i++){ o.getMatrixAt(i,m4); v.setFromMatrixPosition(m4); if(inHigh(v.x,v.z)){ m4.elements[13]+=RISE; o.setMatrixAt(i,m4); ch=true; } } if(ch) o.instanceMatrix.needsUpdate=true; return; }
-    box.setFromObject(o); if(box.isEmpty()){ if(o.isCSS2DObject && inHigh(o.position.x,o.position.z)) o.position.y+=RISE; return; } box.getCenter(v);
-    if(inHigh(v.x,v.z)){ o.position.y+=RISE; }
+    if(o.isInstancedMesh){ let ch=false; for(let i=0;i<o.count;i++){ o.getMatrixAt(i,m4); v.setFromMatrixPosition(m4); const h=inHigh(v.x,v.z)?RISE:elevOut(v.x,v.z); if(h){ m4.elements[13]+=h; o.setMatrixAt(i,m4); ch=true; } } if(ch) o.instanceMatrix.needsUpdate=true; return; }
+    box.setFromObject(o); if(box.isEmpty()){ if(o.isCSS2DObject) o.position.y+=inHigh(o.position.x,o.position.z)?RISE:elevOut(o.position.x,o.position.z); return; } box.getCenter(v);
+    if(inHigh(v.x,v.z)){ o.position.y+=RISE; return; }
+    const hs=[[box.min.x,box.min.z],[box.max.x,box.min.z],[box.min.x,box.max.z],[box.max.x,box.max.z],[v.x,v.z]].map(([x,z])=>elevOut(x,z)), lo=Math.min(...hs), hi=Math.max(...hs);
+    if(hi<=0) return;
+    const ext=Math.max(box.max.x-box.min.x, box.max.z-box.min.z);
+    if(ext>150 && box.max.y<.05) return;   // 大片的地面、田地、溪流不動（抬高的地方另外鋪一層地面蓋過去）
+    if(hi-lo<.08 || ext<9 || (!o.isMesh && ext<30)){ o.position.y+=elevOut(v.x,v.z); return; }
+    if(o.isMesh) disp(o); else o.traverse(c=>{ if(c.isMesh && !c.isInstancedMesh) disp(c); });
   });
+  // 抬高和斜坡那一帶的地面：一張跟著地勢起伏的網格
+  { const [xa]=P(980,0), [xb]=P(2000,0), [,za]=P(0,-60), [,zb]=P(0,1000), g=new THREE.PlaneGeometry(xb-xa,zb-za,255,265); g.rotateX(-Math.PI/2); g.translate((xa+xb)/2,0,(za+zb)/2);
+    const pa=g.attributes.position; for(let i=0;i<pa.count;i++) pa.setY(i,elevOut(pa.getX(i),pa.getZ(i))-.03); g.computeVertexNormals();
+    const m=new THREE.Mesh(g, mat('#9fb48a')); m.receiveShadow=true; scene.add(m); }
   flat(new THREE.ShapeGeometry(shapeFrom(HIGH)), '#c9c6bc', RISE+.1);
   { const cm=mat('#a3a39c',{roughness:.95});
     // 高地的邊緣：水泥擋土牆
@@ -2501,8 +2520,8 @@ addEventListener('keydown', e=>{ if(e.key==='Escape' && !$('#pano-wrap').hidden)
      [[1061.95,377.5],[1061.95,394.2]],[[1061.95,377.5],[1146,399.5]]].forEach(([a,b])=>face(a,b));
     // 原本的圍牆在這兩段沒跟著抬，補上和高地同高的牆
     hiWall([1062,376.7],[1145,398.2]); hiWall([1075.2,579.1],[GATE[0]-.6,579.5]);
-    // 校門口：從前庭下到中山路的斜坡
-    { const [g1,zA]=P(GATE[0],580.6), [g2,zB]=P(GATE[1],590), L=zB-zA; const ap=new THREE.Mesh(new THREE.BoxGeometry(g2-g1,.16,Math.hypot(L,RISE)), mat('#b9b8b2',{roughness:.95})); ap.position.set((g1+g2)/2,RISE/2+.06,(zA+zB)/2); ap.rotation.x=Math.atan2(RISE,L); ap.receiveShadow=true; scene.add(ap); } }
+    // 校門口前的中山路和前庭同高，直接平接（不用斜坡）
+  }
   flat(new THREE.ShapeGeometry(shapeFrom(PIT)), '#7f9e66', -PIT_D+.15);
   const wallM=mat('#a9a69e'), railM=mat('#8e9496');
   const [,zb1]=P(0,412), [,zb2]=P(0,545);   // 東側：看台和南段種樹的那一排都不用欄杆
