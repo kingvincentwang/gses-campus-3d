@@ -1976,12 +1976,13 @@ BUILDINGS.forEach(b=>{
       put(new THREE.Mesh(new THREE.BoxGeometry(mb-ma,mh,mz2-mz1), wM),1).position.set((ma+mb)/2,mh/2,(mz1+mz2)/2);
       [[.25,0],[.5,-.5],[.75,-1]].forEach(([u,dy])=>{ const w=new THREE.Mesh(new THREE.PlaneGeometry(.32,2.2), dark); w.rotation.y=Math.PI; w.position.set(ma+(mb-ma)*u,RISE+fh*1.55+dy,mz1-.02); put(w,2);
         const fr=new THREE.Mesh(new THREE.PlaneGeometry(.42,2.3), mat('#f2f1ec')); fr.rotation.y=Math.PI; fr.position.set(ma+(mb-ma)*u,RISE+fh*1.55+dy,mz1-.015); put(fr,2); }); }
-    { const e=bay(1053,1057.5,true,1.7), PH=1.4, sw=1.4, N=8, run=.28, L=N*run, LD=1.2, sx0=e.ba+.1, fz=z1-e.D, cm=mat('#aeb2b6'), steel=mat('#c9cdcf',{metalness:.55,roughness:.35});
+    // 樓梯（依籃球場實景）：往東爬，頂端的平台直接接上文化走廊一樓；文化走廊旁的花台到樓梯扶手為止
+    { const e=bay(1053,1057.5,true,1.7), PH=1.4, sw=1.4, N=8, run=.28, L=N*run, LD=1.2, sx0=P(1062,0)[0]-L-LD, fz=z1-e.D, cm=mat('#aeb2b6'), steel=mat('#c9cdcf',{metalness:.55,roughness:.35});
       for(let i=0;i<N;i++){ const h=PH*(i+1)/N; put(new THREE.Mesh(new THREE.BoxGeometry(run,h,sw), cm),1).position.set(sx0+(i+.5)*run,h/2+.05,fz-sw/2); }
       put(new THREE.Mesh(new THREE.BoxGeometry(LD,PH,sw), cm),1).position.set(sx0+L+LD/2,PH/2+.05,fz-sw/2);
       [fz-.05,fz-sw+.05].forEach(z=>{ const r=new THREE.Mesh(new THREE.BoxGeometry(Math.hypot(L,PH),.05,.05), steel); r.position.set(sx0+L/2,PH/2+.95,z); r.rotation.z=Math.atan2(PH,L); put(r,1);
         for(let k=0;k<=3;k++) put(new THREE.Mesh(new THREE.BoxGeometry(.05,.95,.05), steel),1).position.set(sx0+L*k/3,PH*k/3+.5,z); });
-      put(new THREE.Mesh(new THREE.BoxGeometry(.05,.05,sw), steel),1).position.set(sx0+L+LD,PH+1,fz-sw/2); }
+    }
     // 西段（兩層，依現場照片「一棟右側」）：一樓坐在橘色磁磚高台上，淺藍灰色樑柱，二樓腰牆外凸灰色花台，頂上高高的橘色女兒牆
     { const w=xl-x1, cxm=(x1+xl)/2, PH=1.4, H2=b.low.floors*fh+.1, bg=mat('#bcc4cf'), granite=mat('#8f9294');
       const base=new THREE.Mesh(new THREE.BoxGeometry(w,PH,dep+.2), orange); base.position.set(cxm,PH/2,z1-dep/2-.1); put(base,1);
@@ -2145,7 +2146,8 @@ const walks=[]; walks.upper=[];
     const floor=new THREE.Mesh(new THREE.BoxGeometry(w,.2,len), mat('#7d9a86')); floor.position.set(cx,.2,cz); g.add(floor);
     const colM=mat('#f1eee6'), baseM=mat('#e08a3c');
     const zc0=P(0,424)[1]+1.2;   // 柱位維持原本的間距，往北多出來的一段再補柱子
-    for(let z=zc0-3.1*Math.floor((zc0-za-.6)/3.1); z<=zb-1.1; z+=3.1){ [xa+.35,xb-.35].forEach(x=>{ const c=new THREE.Mesh(new THREE.BoxGeometry(.42,FH,.42), colM); c.position.set(x,FH/2+.1,z); g.add(c); const bs=new THREE.Mesh(new THREE.BoxGeometry(.46,.75,.46), baseM); bs.position.set(x,.48,z); g.add(bs); }); }
+    for(let z=zc0-3.1*Math.floor((zc0-za-.6)/3.1); z<=zb-1.1; z+=3.1){ [xa+.35,xb-.35].forEach(x=>{ if(x<cx && z>zb-3.8) return;   // 最南那根西側柱子不存在（依實景）：第一棟旁樓梯的平台從這裡接上走廊
+      const c=new THREE.Mesh(new THREE.BoxGeometry(.42,FH,.42), colM); c.position.set(x,FH/2+.1,z); g.add(c); const bs=new THREE.Mesh(new THREE.BoxGeometry(.46,.75,.46), baseM); bs.position.set(x,.48,z); g.add(bs); }); }
     // 二樓
     const t=winTex.clone(); t.needsUpdate=true; t.repeat.set(len/8,1);
     const wm=new THREE.MeshStandardMaterial({map:t,roughness:.8}), pm=mat('#e8c7bd');
@@ -2157,14 +2159,20 @@ const walks=[]; walks.upper=[];
     for(let i=0;i<72;i++) rnd();   // 原本花台小花用掉的亂數，照樣用掉，其他隨機擺設才不會跟著變
     const gy=new THREE.Group(); gy.userData.yard=true;   // 花台和坡道站在低的那一側，不跟著走廊抬高
     { const concrete=mat('#b4b2aa'), steel=mat('#c9cdcf',{metalness:.55,roughness:.35});
-      const [px1]=P(1059.6,0), [px2]=P(1061.9,0), [rx1]=P(1057.2,0), [,pzN]=P(0,420), [,pzS]=P(0,505.4), [,rzS]=P(0,430), [,lzN]=P(0,412.6);   // 坡道入口（坡底）和活動中心北牆切齊
+      const [px1]=P(1059.6,0), [px2]=P(1061.9,0), [rx1]=P(1057.2,0), [,pzN]=P(0,420), [,pzS]=P(0,503.3), [,rzS]=P(0,430), [,lzN]=P(0,412.6), [,cA]=P(0,467.7), [,cB]=P(0,471.3);   // 坡道入口（坡底）和活動中心北牆切齊；花台南端到第一棟旁樓梯的扶手；cA～cB 是籃球場中線那道樓梯
       // 花台與灌木
-      const ph=RISE+.45, pl=new THREE.Mesh(new THREE.BoxGeometry(px2-px1,ph,pzS-pzN), concrete); pl.position.set((px1+px2)/2,ph/2+.1,(pzN+pzS)/2); gy.add(pl);
-      const soil=new THREE.Mesh(new THREE.BoxGeometry(px2-px1-.2,.05,pzS-pzN-.2), mat('#4b3d2f')); soil.position.set((px1+px2)/2,ph+.12,(pzN+pzS)/2); gy.add(soil);
+      const ph=RISE+.45;
+      [[pzN,cA],[cB,pzS]].forEach(([a,b])=>{ const pl=new THREE.Mesh(new THREE.BoxGeometry(px2-px1,ph,b-a), concrete); pl.position.set((px1+px2)/2,ph/2+.1,(a+b)/2); gy.add(pl);
+        const soil=new THREE.Mesh(new THREE.BoxGeometry(px2-px1-.2,.05,b-a-.2), mat('#4b3d2f')); soil.position.set((px1+px2)/2,ph+.12,(a+b)/2); gy.add(soil); });
+      // 籃球場中線那道樓梯（依實景）：穿過花台往東爬上文化走廊一樓，兩側不鏽鋼扶手
+      { const [sx]=P(1057.4,0), NS=7, sr=(px2-sx)/NS, stone=mat('#9a9993',{roughness:.95});
+        for(let i=0;i<NS;i++){ const h=RISE*(i+1)/NS, xa=sx+i*sr; const st=new THREE.Mesh(new THREE.BoxGeometry(px2-xa,h,cB-cA), stone); st.position.set((xa+px2)/2,h/2+.1,(cA+cB)/2); st.castShadow=st.receiveShadow=true; gy.add(st); }
+        const sl=px2-sx; [cA+.08,cB-.08].forEach(z=>{ const r=new THREE.Mesh(new THREE.BoxGeometry(Math.hypot(sl,RISE),.05,.05), steel); r.position.set((sx+px2)/2,RISE/2+.1+.95,z); r.rotation.z=Math.atan2(RISE,sl); gy.add(r);
+          [0,.5,1].forEach(u=>{ const pp=new THREE.Mesh(new THREE.BoxGeometry(.05,.95,.05), steel); pp.position.set(sx+sl*u+(u?-.05:.05),RISE*u+.1+.47,z); gy.add(pp); }); }); }
       let hs=97; const hr=()=>((hs=hs*16807%2147483647)/2147483647);
       const n=Math.round((pzS-pzN)/.55), bush=new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1,1), new THREE.MeshStandardMaterial({roughness:.95,flatShading:true}), n*2), d=new THREE.Object3D(), col=new THREE.Color();
       for(let i=0;i<n*2;i++){ const z=pzN+.3+(i>>1)*(pzS-pzN-.6)/(n-1), x=(px1+px2)/2+((i&1)?.35:-.35)+(hr()-.5)*.2;
-        d.position.set(x,ph+.45+hr()*.25,z+(hr()-.5)*.3); d.scale.set(.55+hr()*.15,.5+hr()*.25,.5+hr()*.2); d.rotation.set(hr()*3,hr()*3,0); d.updateMatrix(); bush.setMatrixAt(i,d.matrix);
+        d.position.set(x,ph+.45+hr()*.25,z+(hr()-.5)*.3); d.scale.set(.55+hr()*.15,.5+hr()*.25,.5+hr()*.2); d.rotation.set(hr()*3,hr()*3,0); if(z>cA-.4 && z<cB+.4) d.scale.setScalar(0); d.updateMatrix(); bush.setMatrixAt(i,d.matrix);
         bush.setColorAt(i,col.set(['#4f7f37','#5f9140','#3f6e2f','#6a9a46'][Math.floor(hr()*4)])); }
       gy.add(bush);
       // 坡道：混凝土實心斜台＋可以走的斜面
