@@ -1932,7 +1932,7 @@ BUILDINGS.forEach(b=>{
         const pr=new THREE.Mesh(new THREE.BoxGeometry(w,.85,.18), orange); pr.position.set(cxm,y+.6,z1-dep+.05); put(pr,f);
         const cap=new THREE.Mesh(new THREE.BoxGeometry(w,.08,.3), white); cap.position.set(cxm,y+1.07,z1-dep+.05); put(cap,f); }
       const top=new THREE.Mesh(new THREE.BoxGeometry(w,.6,dep), white); top.position.set(cxm,H-.2,zc); put(top,b.floors);
-      for(let x=xs+1; x<=x2-1; x+=7.5){ if(x>g1-.8 && x<g2+.8) continue; const pl=new THREE.Mesh(new THREE.BoxGeometry(.9,H+.6,.9), white); pl.position.set(x,(H+.6)/2,z1-dep+.2); put(pl,1); }
+      for(let x=xs+1; x<=x2-1; x+=7.5){ if(x>g1-.8 && x<g2+.8) continue; if(x<xs+2) continue; /* 文化走廊接進來那一格沒有大柱（依實景） */ const pl=new THREE.Mesh(new THREE.BoxGeometry(.9,H+.6,.9), white); pl.position.set(x,(H+.6)/2,z1-dep+.2); put(pl,1); }
     }
     tgt=yardG;
     // 一樓樓板底下的基座：整棟抬高後，朝低地那幾面（西端、南面西段）露出來的牆腳
