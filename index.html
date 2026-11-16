@@ -274,7 +274,7 @@ const SC = Object.fromEntries(SCENES.map(s => [s.id, s]));
 SCENES.forEach(s => s.infos.forEach(i => { i[3] = i[3].replace(/、([一二三四]樓：)/g, '；$1'); }));
 
 const BUILDINGS = [
-  { id:'b1', name:'第一棟', floors:3, r:[975.6,510,1135,536], wall:'#dfa263', roof:'solar', style:'b1', gap:[1093,1109], low:{x:1031.85, floors:2},
+  { id:'b1', name:'第一棟', floors:3, r:[975.6,510,1135,536], wall:'#dfa263', roof:'solar', style:'b1', gap:[1083,1107.5], low:{x:1031.85, floors:2},
     rooms:['教務處、學務處、一年甲乙丙班','校長室、四年丁班、二年甲乙丙班','三年甲乙丙班'],
     desc:'校園最南側的行政與低年級大樓，中廊從校門圓環直通中庭。西段朝活動中心：橘色磁磚牆、淺藍灰樑柱，一樓坐在高台上，東端有寬大的石階、三層疊起的開放陽台和貼淺藍直條的樓梯塔，塔和文化走廊之間是一道不鏽鋼扶手樓梯，前面是種樹的草地帶和往西下降的無障礙坡道；西端北半段是掛著 1899 校徽、下有咖啡色直柵樓梯間的高塔，南半段牆前有往下的地下室車道與鐵捲門。' },
   { id:'b4', name:'第四棟', floors:3, r:[1119,467,1134,510], wall:'#e7e0d0', roof:'solar',
@@ -531,7 +531,7 @@ flat(rectGeom(1079,469,1117,497), '#4f7a5e', .17);
 { const lm=new THREE.LineBasicMaterial({color:0xe9ece4}), L=(pts)=>scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts.map(([px,py])=>{const [x,z]=P(px,py);return new THREE.Vector3(x,.19,z);})), lm));
   L([[1080,470],[1116,470],[1116,496],[1080,496],[1080,470]]); L([[1098,470],[1098,496]]); L([[1080,476],[1116,476]]); L([[1080,490],[1116,490]]); L([[1089,470],[1089,496]]); L([[1107,470],[1107,496]]); }
 { const pots=new THREE.InstancedMesh(new THREE.CylinderGeometry(.28,.2,.45,8), mat('#b5603e'), 70), leaves=new THREE.InstancedMesh(new THREE.IcosahedronGeometry(.42,0), mat('#4f8a3c',{flatShading:true}), 70); const t=new THREE.Object3D(); let n=0;
-  for(let px=1069; px<1118 && n<70; px+=1.3){ if(px>1093 && px<1109) continue; const [x,z]=P(px,502+rnd()*1.2); t.position.set(x,.35,z); t.scale.setScalar(1); t.updateMatrix(); pots.setMatrixAt(n,t.matrix); t.position.y=.85; t.scale.setScalar(.7+rnd()*.6); t.updateMatrix(); leaves.setMatrixAt(n,t.matrix); n++; }
+  for(let px=1069; px<1118 && n<70; px+=1.3){ if(px>1083 && px<1107.5) continue; const [x,z]=P(px,502+rnd()*1.2); t.position.set(x,.35,z); t.scale.setScalar(1); t.updateMatrix(); pots.setMatrixAt(n,t.matrix); t.position.y=.85; t.scale.setScalar(.7+rnd()*.6); t.updateMatrix(); leaves.setMatrixAt(n,t.matrix); n++; }
   pots.count=leaves.count=n; scene.add(pots,leaves); }
 // 第一棟北面一樓走廊（依實景）：灰色磨石子地坪，從東端沿著中庭一路往西，穿過文化走廊底下，接到西段：右手邊是往下到籃球場、活動中心前空地的樓梯，再穿過樓梯塔底一路通到西端
 { const [x1,z1]=P(1053,505.6), [x2,z2]=P(1135,510); const fl=new THREE.Mesh(new THREE.BoxGeometry(x2-x1,.12,z2-z1), mat('#bdbcb6',{roughness:.6})); fl.position.set((x1+x2)/2,.17,(z1+z2)/2); fl.receiveShadow=true; scene.add(fl);
@@ -1896,22 +1896,35 @@ BUILDINGS.forEach(b=>{
     for(let k=1;k<nx;k++) putP(new THREE.Mesh(new THREE.BoxGeometry(.35,.45,z2-za), beamM),3).position.set(g1+(g2-g1)*k/nx,cy-.23,(za+z2)/2);
     for(let k=1;k<nz;k++) putP(new THREE.Mesh(new THREE.BoxGeometry(g2-g1,.45,.35), beamM),3).position.set((g1+g2)/2,cy-.23,za+(z2-za)*k/nz);
     for(let i=0;i<nx;i++) for(let j=0;j<nz;j++) putP(new THREE.Mesh(new THREE.BoxGeometry(.55,.15,.38), lampM),3).position.set(g1+(g2-g1)*(i+.5)/nx,cy-.12,za+(z2-za)*(j+.5)/nz); }
-  // 穿堂上方三樓立面（依照片）：白框外凸的窗盒（有冷氣機）與內凹、有深色直柵的陽台交錯
-  { const face=canvasTex(1024,256,(g,W,Hh)=>{ g.fillStyle='#ecba78'; g.fillRect(0,0,W,Hh); g.fillStyle='#00000012'; for(let x=0;x<W;x+=8) g.fillRect(x,0,1,Hh); for(let y=0;y<Hh;y+=8) g.fillRect(0,y,W,1);
-      g.fillStyle='#d3d8de'; g.fillRect(0,Hh-34,W,34); g.fillStyle='#ecba78'; g.fillRect(0,Hh-60,W,26);
-      const items=[['s',.1],['w',.2],['b',.16],['s',.1],['w',.2],['b',.16]], gap=(W-20-W*.92)/5; let x=10;
-      items.forEach(([k,f])=>{ const w=f*W;
-        if(k==='b'){ g.fillStyle='#f4f4f0'; g.fillRect(x,20,w,Hh-90); g.fillStyle='#3a3d40'; g.fillRect(x+12,34,w-24,Hh-130); g.fillStyle='#2b2724'; for(let i=0;i<6;i++) g.fillRect(x+16+i*9,34,5,Hh-130); g.fillStyle='#f4f4f0'; g.fillRect(x+12,Hh-120,w-24,30); }
-        else { const n=k==='w'?4:2; g.fillStyle='#f4f4f0'; g.fillRect(x+4,46,w-8,Hh-120); g.fillStyle='#8aa0ad'; g.fillRect(x+14,58,w-28,Hh-148); g.fillStyle='#f4f4f0'; for(let i=1;i<n;i++) g.fillRect(x+14+(w-28)*i/n,58,3,Hh-148);
-          if(k==='w'){ g.fillStyle='#ececea'; g.fillRect(x+16,Hh-128,46,38); g.strokeStyle='#999'; g.lineWidth=2; g.beginPath(); g.arc(x+39,Hh-109,12,0,Math.PI*2); g.stroke(); } }
-        x+=w+gap; }); });
-    const fc=putP(new THREE.Mesh(new THREE.PlaneGeometry(g2-g1,fh), new THREE.MeshStandardMaterial({map:face,roughness:.85})),3); fc.position.set((g1+g2)/2,2*fh+.1+fh/2,z2+.06); fc.castShadow=false; }
+  // 穿堂西牆到東端樓梯間的南面（依空拍）：平分成四間教室，每間由西到東是小白框窗、裝冷氣的寬窗、淺藍灰凸出陽台（深色門、白色花台）；
+  // 一、二樓前兩間是挑高的穿堂（第二間只剩東邊一小段牆），三樓四間都完整
+  { const NB=4, E=x2-1.6, bw=(E-g1)/NB, PX=256;
+    const face=canvasTex(PX*NB,128,(g,W,Hh)=>{ g.fillStyle='#ecba78'; g.fillRect(0,0,W,Hh); g.fillStyle='#00000012'; for(let x=0;x<W;x+=8) g.fillRect(x,0,1,Hh); for(let y=0;y<Hh;y+=8) g.fillRect(0,y,W,1);
+      g.fillStyle='#d3d8de'; g.fillRect(0,Hh-14,W,14); g.fillRect(0,0,W,5);
+      const win=(xa,xb,n,ac)=>{ g.fillStyle='#f4f4f0'; g.fillRect(xa,26,xb-xa,72); g.fillStyle='#7f96a3'; g.fillRect(xa+6,32,xb-xa-12,60); g.fillStyle='#f4f4f0'; for(let i=1;i<n;i++) g.fillRect(xa+6+(xb-xa-12)*i/n-1.5,32,3,60); g.fillRect(xa+6,58,xb-xa-12,3);
+        g.fillStyle='#d9dcdc'; g.fillRect(xa-2,96,xb-xa+4,6);
+        if(ac){ g.fillStyle='#ededea'; g.fillRect(xa+12,64,34,24); g.strokeStyle='#9a9c9c'; g.lineWidth=2; g.beginPath(); g.arc(xa+29,76,8,0,Math.PI*2); g.stroke(); } };
+      for(let i=0;i<NB;i++){ const o=i*PX; win(o+.04*PX,o+.19*PX,2,false); win(o+.25*PX,o+.66*PX,4,true); } });
+    const fm=new THREE.MeshStandardMaterial({map:face,roughness:.85});
+    // 三樓：四間整面
+    const f3=putP(new THREE.Mesh(new THREE.PlaneGeometry(E-g1,fh), fm),3); f3.position.set((g1+E)/2,2*fh+.1+fh/2,z2+.06); f3.castShadow=false;
+    // 一、二樓：從穿堂東牆開始（貼圖只取右邊那一段，窗戶才會和三樓對齊）
+    const u0=(g2-g1)/(E-g1);
+    [1,2].forEach(fl=>{ const geo=new THREE.PlaneGeometry(E-g2,fh), uv=geo.attributes.uv; for(let k=0;k<uv.count;k++) uv.setX(k,u0+uv.getX(k)*(1-u0));
+      const m=putP(new THREE.Mesh(geo,fm),fl); m.position.set((g2+E)/2,(fl-1)*fh+.1+fh/2,z2+.06); m.castShadow=false; });
+    // 每間東側的淺藍灰陽台：凸出的框、內凹深色門、白色花台
+    const blueM=mat('#c3ccd8'), doorM=mat('#2f3236'), boxM=mat('#f2f2ee');
+    for(let i=0;i<NB;i++){ const xa=g1+bw*(i+.72), xb=g1+bw*(i+.96), cx=(xa+xb)/2, ww=xb-xa;
+      for(let fl=1; fl<=3; fl++){ if(fl<3 && xa<g2+.2) continue; const y0=(fl-1)*fh+.1;
+        putP(new THREE.Mesh(new THREE.BoxGeometry(ww,fh-.05,.45), blueM),fl).position.set(cx,y0+fh/2,z2+.225);
+        const dr=putP(new THREE.Mesh(new THREE.PlaneGeometry(ww*.62,fh*.72), doorM),fl); dr.position.set(cx,y0+.15+fh*.36,z2+.455); dr.castShadow=false;
+        putP(new THREE.Mesh(new THREE.BoxGeometry(ww*.86,.6,.4), boxM),fl).position.set(cx,y0+.75,z2+.65); } } }
   // 屋頂欄杆上的金色校名「關西國民小學　縣長 邱鏡淳 題」
   { const t=canvasTex(1024,96,(g,W,Hh)=>{ g.clearRect(0,0,W,Hh); g.fillStyle='#d7b04a'; g.strokeStyle='#6b5420'; g.lineWidth=2; g.textAlign='center'; g.font='bold 64px "Noto Serif TC","Microsoft JhengHei",serif';
       ['關','西','國','民','小','學'].forEach((c,i)=>{ g.fillText(c,70+i*110,72); g.strokeText(c,70+i*110,72); }); g.font='bold 40px "Noto Serif TC","Microsoft JhengHei",serif'; ['縣長','邱鏡淳','題'].forEach((c,i)=>g.fillText(c,[730,850,975][i],70)); });
     const sg=putP(new THREE.Mesh(new THREE.PlaneGeometry(13,1.25), new THREE.MeshBasicMaterial({map:t,transparent:true})),3); sg.castShadow=false; sg.position.set((g1+g2)/2+2.6,H+.95,z2+.12); }
   // 屋頂（依空拍）：太陽能板只鋪在校徽門樓到東段約三分之二處；門樓以西是深灰色平屋頂、上面一座樓梯間小屋，東端是灰色浪板屋頂
-  { const [xw]=P(b.low.x,0), [xt]=P(1082,0), [xs]=P(1127,0), d=z2-z1, ry=H+.53;
+  { const [xw]=P(b.low.x,0), [xt]=P(1072,0), [xs]=P(1127,0), d=z2-z1, ry=H+.53;
     const flatM=mat('#7d7f7c',{roughness:.95}), tinT=canvasTex(128,128,(g,W,Hh)=>{ g.fillStyle='#8e9a96'; g.fillRect(0,0,W,Hh); g.fillStyle='#00000022'; for(let x=0;x<W;x+=8) g.fillRect(x,0,3,Hh); });
     const fr=putP(new THREE.Mesh(new THREE.BoxGeometry(xt-xw,.06,d+.4), flatM),3); fr.position.set((xw+xt)/2,ry,(z1+z2)/2); fr.castShadow=false;
     const tin=putP(new THREE.Mesh(new THREE.BoxGeometry(x2-xs+.3,.3,d+.5), [flatM,flatM,new THREE.MeshStandardMaterial({map:tinT,roughness:.7}),flatM,flatM,flatM]),3); tin.position.set((xs+x2+.3)/2,ry+.12,(z1+z2)/2); tin.rotation.x=.04;
@@ -2103,11 +2116,12 @@ BUILDINGS.forEach(b=>{
     }
   }
   // 校徽門樓：比主體高一點的灰色塔，正面有深色格柵與校徽
-  const [t1]=P(1082,0), [t2]=P(1091,0); const tw=t2-t1, tx=(t1+t2)/2, th=H+2.2;
+  const [t1]=P(1072,0), [t2]=P(1081,0);   // 依空拍：門樓在四間教室（含穿堂）的正西邊
+  const tw=t2-t1, tx=(t1+t2)/2, th=H+2.2;
   const zn=z1+1.7, zs=z2+1.2, tcz=(zn+zs)/2, td=zs-zn;   // 北面和退進去的一樓北牆切齊，不擋走廊
   const tower=new THREE.Mesh(new THREE.BoxGeometry(tw,th,td), gray); tower.position.set(tx,th/2,tcz); tower.castShadow=true;
   // 依照片：西邊一條窄的灰色塔、正面深色直柵；東邊是橘色磁磚段，三層白框外凸的玻璃窗盒，頂上掛校徽
-  const [tm]=P(1085.5,0), [te]=P(1092.6,0), ow=te-tm, ocx=(tm+te)/2-tx, fz=zs-tcz-.4;
+  const [tm]=P(1075.5,0), [te]=P(1082.6,0), ow=te-tm, ocx=(tm+te)/2-tx, fz=zs-tcz-.4;
   const slat=new THREE.Mesh(new THREE.BoxGeometry((tm-t1)*.45,th-1.2,.2), mat('#2e2824')); slat.position.set((t1+tm)/2-tx,-.4,fz+.01); tower.add(slat);
   const och=new THREE.Mesh(new THREE.BoxGeometry(ow,th,td+.04), mat('#ecba78',{emissive:'#3a2810'})); och.position.set(ocx,0,0); tower.add(och);
   for(let f=0;f<3;f++){ const y=-th/2+f*fh+1.1+fh*.36;
