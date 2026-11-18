@@ -294,7 +294,7 @@ const BUILDINGS = [
   { id:'gym', name:'活動中心', floors:1, h:9, r:[961,425,1027,480], wall:'#ecebe6', roof:'gray', custom:true,
     rooms:['禮堂、體育器材室、樂活教室'],
     desc:'「學生活動中心」兼作禮堂：米色斜瓦屋頂、紅褐色窗櫺的高窗帶，東端是寫著金色大字的灰色塔樓，東面朝籃球場：大拱形白磚牆、看書唱歌的女孩壁畫、三個拱窗，兩座白磁磚戶外樓梯和紅磚壓頂的花台。' },
-  { id:'stage', name:'司令台', floors:1, r:[939,446,952,465], wall:'#d9d6cc', roof:'gray', custom:true,
+  { id:'stage', name:'司令台', floors:1, r:[942.2,446,955.2,465], wall:'#d9d6cc', roof:'gray', custom:true,
     rooms:['司令台；台下是器材室'],
     desc:'操場東側直道旁的司令台：一樓是洗石子牆的器材室，二樓舞台有白色欄杆、兩根白圓柱、孩子奔跑的背牆彩繪與往前弧出的懸挑屋頂；兩端各一道沿正面的樓梯，樓梯腳旁立著旗桿，兩側是看台階梯。' },
   { id:'shed', name:'場邊小屋', floors:1, h:3.5, r:[828,343,866,367], wall:'#e6e1d6', roof:'gray', minor:true, rooms:['球場旁附屬建築'], desc:'網球場北側的小型建築。' },
@@ -448,7 +448,7 @@ function stadiumPts(cx, cz, hs, r, n=40){ const pts=[]; for(let i=0;i<=n;i++){ c
   const hole=new THREE.Path(); stadiumPts(cx,cz,hs,R-lanes).forEach(([x,z],i)=>i?hole.lineTo(x,-z):hole.moveTo(x,-z)); outer.holes.push(hole);
   flat(new THREE.ShapeGeometry(outer), '#a5503f', 0.2);
   // 司令台前的綠色空地（跑道東側直道外到看台前），上面畫白線
-  flat(rectGeom(931,354,941.3,536), '#3f7d5e', 0.195);   // 東緣伸到司令台兩旁平台腳下（看台底下被蓋住）
+  flat(rectGeom(931,354,943.9,536), '#3f7d5e', 0.195);   // 東緣伸到司令台兩旁平台腳下（看台底下被蓋住）
   [933,935.5,938].forEach(px=>{ const [x]=P(px,0), [,za]=P(0,356), [,zb]=P(0,532); scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(x,.23,za),new THREE.Vector3(x,.23,zb)]), new THREE.LineBasicMaterial({color:0xf0f0ea}))); });
   const inner=new THREE.Shape(); stadiumPts(cx,cz,hs,R-lanes).forEach(([x,z],i)=>i?inner.lineTo(x,-z):inner.moveTo(x,-z));
   flat(new THREE.ShapeGeometry(inner), '#6f9b4f', 0.2);
