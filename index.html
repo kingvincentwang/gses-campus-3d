@@ -744,14 +744,17 @@ flat(rectGeom(1077.5,473.4,1118.5,499.6), '#4f7a5e', .17);   // 綠色球場底�
   // 東南角（依照片）：圓環東邊一小塊方磚廣場，靠東牆一排藍色桶子、後面是寫著「守時」的石碑，兩邊擺盆栽；廣場南邊是紅磚收邊的花圃，孔子銅像面向廣場
   { const [px1,pz1]=P(1124,536.6), [px2,pz2]=P(1145,549); const t=tileT.clone(); t.needsUpdate=true; t.repeat.set((px2-px1)/2,(pz2-pz1)/2);
     const pl=new THREE.Mesh(new THREE.PlaneGeometry(px2-px1,pz2-pz1), new THREE.MeshStandardMaterial({map:t,roughness:.95})); pl.rotation.x=-Math.PI/2; pl.position.set((px1+px2)/2,.215,(pz1+pz2)/2); pl.receiveShadow=true; scene.add(pl); }
-  { const blue=mat('#1f3fa6',{roughness:.45}), [bx]=P(1143.4,0); for(let i=0;i<8;i++){ const [,bz]=P(0,540.2+i*1.13); const b=new THREE.Mesh(new THREE.CylinderGeometry(.3,.3,.9,14), blue); b.position.set(bx,.65,bz); b.castShadow=true; scene.add(b); } }
-  { const [x0,zc]=P(1144.8,544.6), stone=mat('#5f6b66',{roughness:.8}), white=mat('#e9e8e2');
+  { const blue=mat('#1f3fa6',{roughness:.45}), bx=P(1143.4,0)[0]-1;   /* 往前（遠離圍牆）移一公尺 */ for(let i=0;i<8;i++){ const [,bz]=P(0,540.2+i*1.13); const b=new THREE.Mesh(new THREE.CylinderGeometry(.3,.3,.9,14), blue); b.position.set(bx,.65,bz); b.castShadow=true; scene.add(b); } }
+  { const [x0a,zc]=P(1144.8,544.6), x0=x0a-1, stone=mat('#5f6b66',{roughness:.8}), white=mat('#e9e8e2');
     const sh=new THREE.Shape(); sh.moveTo(-.75,0); sh.lineTo(1.25,0); sh.lineTo(-.05,4.3); sh.lineTo(-.75,4.3); sh.closePath();
     const g=new THREE.ExtrudeGeometry(sh,{depth:.35,bevelEnabled:false}); g.rotateY(-Math.PI/2);
     const st=new THREE.Mesh(g, stone); st.position.set(x0,.1,zc); st.castShadow=true; scene.add(st);
     [[1.8,.28,-.35,4.55],[.28,4.4,-.95,2.3],[1.6,.28,-.2,.35]].forEach(([w,h,dz,y])=>{ const m=new THREE.Mesh(new THREE.BoxGeometry(.4,h,w), white); m.position.set(x0-.17,y,zc+dz); m.castShadow=true; scene.add(m); });
     const tx=canvasTex(64,160,(c,W,Hh)=>{ c.clearRect(0,0,W,Hh); c.fillStyle='#e0b23a'; c.font='bold 46px "Noto Serif TC","Microsoft JhengHei",serif'; c.textAlign='center'; c.fillText('守',W/2,62); c.fillText('時',W/2,130); });
-    const tp=new THREE.Mesh(new THREE.PlaneGeometry(.45,1.15), new THREE.MeshBasicMaterial({map:tx,transparent:true})); tp.position.set(x0-.37,3,zc-.25); tp.rotation.y=-Math.PI/2; scene.add(tp); }
+    const tp=new THREE.Mesh(new THREE.PlaneGeometry(.45,1.15), new THREE.MeshBasicMaterial({map:tx,transparent:true})); tp.position.set(x0-.37,3,zc-.25); tp.rotation.y=-Math.PI/2; scene.add(tp);
+    // 石碑和圍牆之間隔一公尺，種一棵小樹（依實景）
+    { const tx0=(x0+P(1145,0)[0])/2+.1; const tr=new THREE.Mesh(new THREE.CylinderGeometry(.07,.1,1.6,6), mat('#6b5a48')); tr.position.set(tx0,.9,zc+.3); tr.castShadow=true; scene.add(tr);
+      const cr=new THREE.Mesh(new THREE.IcosahedronGeometry(1,1), mat('#3f6e2f',{flatShading:true})); cr.scale.set(.8,1.1,.9); cr.position.set(tx0,2.2,zc+.3); cr.castShadow=true; scene.add(cr); } }
   { const pot=mat('#b5643f'), leaf=mat('#4f8a3c',{flatShading:true}), pink=mat('#e04a8c');
     [[1136,547.4],[1137.8,547.6],[1139.6,547.4]].forEach(([px,py],i)=>{ const [x,z]=P(px,py);   /* 只剩南邊這幾盆；北邊靠第一棟那排盆栽現場沒有（依使用者標註） */
       const pt=new THREE.Mesh(new THREE.CylinderGeometry(.32,.24,.55,10), pot); pt.position.set(x,.45,z); scene.add(pt);
@@ -2132,6 +2135,22 @@ BUILDINGS.forEach(b=>{
         putP(new THREE.Mesh(new THREE.BoxGeometry(ww,fh-.05,.45), blueM),fl).position.set(cx,y0+fh/2,z2+.225);
         const dr=putP(new THREE.Mesh(new THREE.PlaneGeometry(ww*.62,fh*.72), doorM),fl); dr.position.set(cx,y0+.15+fh*.36,z2+.455); dr.castShadow=false;
         putP(new THREE.Mesh(new THREE.BoxGeometry(ww*.86,.6,.4), boxM),fl).position.set(cx,y0+.75,z2+.65); } } }
+  // 東端樓梯間（依實景）：比原本往東多出一公尺的窄塔，灰白框架；三樓正面橘色磁磚加一個白框圓窗、頂上高出屋頂，二樓是不鏽鋼欄杆的開放平台，一樓整面黑色直條鐵柵門，右側一根灰白方柱
+  { const xa=x2-1.6, xb=x2+1, tw=xb-xa, cx=(xa+xb)/2, zf=z2+.95, TD=3.85, zb=zf-TD, top=H+1.1, frM=mat('#d6d9db',{roughness:.9}), darkM=mat('#3a3f43'), steel=mat('#c9cdcf',{metalness:.55,roughness:.35}), ironM=mat('#2b2b2d',{roughness:.6});
+    putP(new THREE.Mesh(new THREE.BoxGeometry(tw,top-.1,TD-.9), frM),3).position.set(cx,.1+(top-.1)/2,zb+(TD-.9)/2);   // 塔身（後段實心）
+    [[xa+.12],[xb-.2]].forEach(([x],k)=>putP(new THREE.Mesh(new THREE.BoxGeometry(k?.4:.24,top-.1,.9), frM),3).position.set(x,.1+(top-.1)/2,zf-.45));   // 兩側框柱
+    for(let f=1;f<=3;f++) putP(new THREE.Mesh(new THREE.BoxGeometry(tw,.35,.9), frM),f).position.set(cx,f*fh+.1-.17,zf-.45);   // 每層樓板邊
+    putP(new THREE.Mesh(new THREE.BoxGeometry(tw,.3,.9), frM),3).position.set(cx,top-.15,zf-.45);
+    const orT=canvasTex(128,192,(g,W,Hh)=>{ g.fillStyle='#e6a85c'; g.fillRect(0,0,W,Hh); g.fillStyle='#00000014'; for(let x=0;x<W;x+=6) g.fillRect(x,0,1,Hh); for(let y=0;y<Hh;y+=6) g.fillRect(0,y,W,1);
+      const cx0=W*.55, cy0=Hh*.4, r=W*.2; g.fillStyle='#f2f2ee'; g.beginPath(); g.arc(cx0,cy0,r+6,0,Math.PI*2); g.fill(); g.fillStyle='#55656d'; g.beginPath(); g.arc(cx0,cy0,r,0,Math.PI*2); g.fill(); g.fillStyle='#f2f2ee'; g.fillRect(cx0-2,cy0-r,4,2*r); g.fillRect(cx0-r,cy0-2,2*r,4); });
+    const y3=2*fh+.1; const op=putP(new THREE.Mesh(new THREE.BoxGeometry(tw-.64,top-.3-y3-.2,.12), [frM,frM,frM,frM,new THREE.MeshStandardMaterial({map:orT,roughness:.85}),frM]),3); op.position.set(cx-.08,y3+.2+(top-.3-y3-.2)/2,zf-.1);   // 三樓橘色磁磚面與圓窗
+    [[1,.1],[2,fh+.1]].forEach(([f,y])=>{ putP(new THREE.Mesh(new THREE.BoxGeometry(tw-.64,fh-.35,.05), darkM),f).position.set(cx-.08,y+(fh-.35)/2,z2+.09); });   // 一、二樓凹進去的暗處
+    { const y=fh+.1, zr=zf-.1, n=Math.round((tw-.64)/.12);   // 二樓平台欄杆
+      putP(new THREE.Mesh(new THREE.BoxGeometry(tw-.64,.05,.05), steel),2).position.set(cx-.08,y+1.05,zr);
+      for(let k=0;k<=n;k++) putP(new THREE.Mesh(new THREE.BoxGeometry(.025,1,.025), steel),2).position.set(xa+.24+(tw-.64)*k/n,y+.52,zr); }
+    { const y=.1, gh=fh-.5, zr=zf-.3, n=Math.round((tw-.64)/.14);   // 一樓黑色直條鐵柵門
+      [gh-.05,gh*.55,.12].forEach(h=>putP(new THREE.Mesh(new THREE.BoxGeometry(tw-.64,.06,.05), ironM),1).position.set(cx-.08,y+h,zr));
+      for(let k=0;k<=n;k++) putP(new THREE.Mesh(new THREE.BoxGeometry(.035,gh,.035), ironM),1).position.set(xa+.24+(tw-.64)*k/n,y+gh/2,zr); } }
   // 屋頂欄杆上的金色校名「關西國民小學　縣長 邱鏡淳 題」
   { const t=canvasTex(1024,96,(g,W,Hh)=>{ g.clearRect(0,0,W,Hh); g.fillStyle='#d7b04a'; g.strokeStyle='#6b5420'; g.lineWidth=2; g.textAlign='center'; g.font='bold 64px "Noto Serif TC","Microsoft JhengHei",serif';
       ['關','西','國','民','小','學'].forEach((c,i)=>{ g.fillText(c,70+i*110,72); g.strokeText(c,70+i*110,72); }); g.font='bold 40px "Noto Serif TC","Microsoft JhengHei",serif'; ['縣長','邱鏡淳','題'].forEach((c,i)=>g.fillText(c,[730,850,975][i],70)); });
