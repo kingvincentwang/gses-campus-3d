@@ -381,7 +381,7 @@ const pitHole=()=>{ const h=new THREE.Path(); PIT.forEach(([px,py],i)=>{ const [
 const inPit=(x,z)=>pointInPoly(x/S+OX, z/S+OY, PIT);
 /* 文化走廊以東一整片（第三、二、四棟、中庭、遊戲場、第一棟一樓、校門前庭）同高，比西邊的籃球場、活動中心前廣場和第一棟南側空地高 RISE；
    RISE 就是第一棟西段高台的高度，樓梯和坡道爬上去剛好接到一樓走廊 */
-const HIGH=[[1061.95,377.5],[1146,399.5],[1146,581],[1061.7,580],[1064.4,546],[1073.5,546],[1073.5,536.2],[1061.95,536.2]], RISE=1.4;   // 前庭花園西緣貼著鄰居公寓東側（依使用者標註）
+const HIGH=[[1061.95,377.5],[1146,399.5],[1146,581],[1061.7,580],[1064.4,546],[1070.3,546],[1070.3,536.2],[1061.95,536.2]]   /* 花園西北角跟著矮欄杆往西 */, RISE=1.4;   // 前庭花園西緣貼著鄰居公寓東側（依使用者標註）
 const inHigh=(x,z)=>pointInPoly(x/S+OX, z/S+OY, HIGH);
 /* 校外的地勢（依現場）：老街和校門口前的中山路跟第一棟前的空地同高；中山路從校門往西是一路往下的斜坡，到側門一帶降到和操場那側同高。
    老街一路平的接到北平路，校園北側的北平路也和校園同高；只有到廚房、幼兒園那一側（校內本來就低一截）才往西斜下去 */
@@ -706,7 +706,7 @@ flat(rectGeom(1077.5,473.4,1118.5,499.6), '#4f7a5e', .17);   // 綠色球場底�
     const gm=new THREE.BufferGeometry(); gm.setAttribute('position',new THREE.Float32BufferAttribute(pos,3)); gm.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2)); gm.setIndex(idx); gm.computeVertexNormals();
     const me=new THREE.Mesh(gm,m); me.receiveShadow=true; scene.add(me); return c; };
   const roadM=new THREE.MeshStandardMaterial({map:tileT,roughness:.95,side:THREE.DoubleSide}), brickM=mat('#b0614a',{side:THREE.DoubleSide});
-  const road1=[[1108,550.5],[1097,548],[1086,546.5]], road2=[[1090,544],[1085,542],[1080.6,541],[1074.6,540.6]];   // 圓環→花園北緣，再沿第一棟前面往西，到校徽塔旁的欄杆為止
+  const road1=[[1108,550.5],[1097,548],[1086,546.5]], road2=[[1090,544],[1085,542],[1080.6,541],[1070.7,540.5]];   // 圓環→花園北緣，再沿第一棟前面往西，到校徽塔旁的欄杆為止
   ribbon(road1,7.2,.21,roadM);
   { const gateRoad=[[1117.5,560],[1118.5,570],[1119.2,580.5]]; ribbon(gateRoad,6.4,.205,roadM); ribbon(gateRoad,.45,.24,brickM,-3.3); ribbon(gateRoad,.45,.24,brickM,3.3); }   // 圓環往南到校門：一條直直的方磚路，兩側紅磚收邊 ribbon(road1,.45,.24,brickM,-3.8);
   ribbon(road2,4.8,.215,roadM); ribbon(road2,.45,.245,brickM,-2.6);
@@ -726,14 +726,14 @@ flat(rectGeom(1077.5,473.4,1118.5,499.6), '#4f7a5e', .17);   // 綠色球場底�
       const n=Math.floor(len/.14), bars=new THREE.InstancedMesh(new THREE.BoxGeometry(.03,1,.03), iron, n), t=new THREE.Object3D();
       for(let k=0;k<n;k++){ const f=(k+.5)/n; t.position.set(ax+(bx-ax)*f,2.28,az+(bz-az)*f); t.updateMatrix(); bars.setMatrixAt(k,t.matrix); } scene.add(bars); } }
   // 校徽塔旁（依照片）：方磚步道盡頭，一根花崗石矮牆柱和米色鐵欄杆門，從圍牆轉角攔到第一棟；欄杆外（西邊）是低一截的空地
-  { const [fx,fzS]=P(1074.2,546), [,fzN]=P(1074.2,536.3), granite=mat('#a29d94',{roughness:.95}), rail=mat('#cbc3a6',{metalness:.3,roughness:.5});
+  { const [fx,fzS]=P(1070.3,546), [,fzN]=P(1070.3,538.3),   /* 矮欄杆往西移到校徽塔窗盒下（依使用者標註），北端接到塔的南面 */ granite=mat('#a29d94',{roughness:.95}), rail=mat('#cbc3a6',{metalness:.3,roughness:.5});
     const pil=new THREE.Mesh(new THREE.BoxGeometry(.8,1.7,1.1), granite); pil.position.set(fx,.95,fzS-.55); pil.castShadow=true; scene.add(pil);
     const low=new THREE.Mesh(new THREE.BoxGeometry(.8,.9,.9), granite); low.position.set(fx,.55,fzS-1.5); scene.add(low);
     const za=fzS-1.95, zb=fzN+.05, L=za-zb, n=Math.floor(L/.13), bars=new THREE.InstancedMesh(new THREE.BoxGeometry(.035,1.2,.035), rail, n), t=new THREE.Object3D();
     for(let k=0;k<n;k++){ t.position.set(fx,.8,zb+(k+.5)*L/n); t.updateMatrix(); bars.setMatrixAt(k,t.matrix); } scene.add(bars);
     [.25,1.38].forEach(y=>{ const r=new THREE.Mesh(new THREE.BoxGeometry(.05,.05,L), rail); r.position.set(fx,y,(za+zb)/2); scene.add(r); });
     [za,zb,(za+zb)/2].forEach(z=>{ const p=new THREE.Mesh(new THREE.BoxGeometry(.07,1.4,.07), rail); p.position.set(fx,.8,z); scene.add(p); });
-  { const [xa]=P(1065.5,0), [xb]=P(1073.85,0), [,zr]=P(0,546), L=xb-xa;
+  { const [xa]=P(1065.5,0), [xb]=P(1069.95,0), [,zr]=P(0,546), L=xb-xa;
     const rw=new THREE.Mesh(new THREE.BoxGeometry(L,RISE+.1,.3), granite); rw.position.set((xa+xb)/2,(RISE+.1)/2,zr-.15); rw.castShadow=rw.receiveShadow=true; scene.add(rw);
     const n2=Math.floor(L/.13), b2=new THREE.InstancedMesh(new THREE.BoxGeometry(.035,1.2,.035), rail, n2);
     for(let k=0;k<n2;k++){ t.position.set(xa+(k+.5)*L/n2,RISE+.7,zr-.1); t.updateMatrix(); b2.setMatrixAt(k,t.matrix); } scene.add(b2);
@@ -741,7 +741,7 @@ flat(rectGeom(1077.5,473.4,1118.5,499.6), '#4f7a5e', .17);   // 綠色球場底�
 }   // 欄杆外原本那棵開紅花的樹已移除（現場沒有）
   // 欄杆西邊的空地（依照片）：第一棟南牆和鄰居圍牆之間，和活動中心到第一棟前面的地面同高、往西直接連通，比前庭花園低一截；
   // 長著雜草的泥土地，靠南一條鋼格柵排水溝，東端（欄杆底下）擋土牆前靠著一塊斜頂的水泥墩
-  { const [sx1,sz1]=P(985,536.3), [sx2,sz2]=P(1073.3,545.6), cm=mat('#a3a39c',{roughness:.95}), W=sx2-sx1, Dp=sz2-sz1;
+  { const [sx1,sz1]=P(985,536.3), [sx2,sz2]=P(1070.1,545.6), cm=mat('#a3a39c',{roughness:.95}), W=sx2-sx1, Dp=sz2-sz1;
     const fl=new THREE.Mesh(new THREE.PlaneGeometry(W,Dp), mat('#6f7a4a',{roughness:1})); fl.rotation.x=-Math.PI/2; fl.position.set((sx1+sx2)/2,.13,(sz1+sz2)/2); fl.receiveShadow=true; scene.add(fl);
     const gT=canvasTex(128,32,(g,Wd,Hh)=>{ g.fillStyle='#5b5f62'; g.fillRect(0,0,Wd,Hh); g.fillStyle='#9aa0a3'; for(let x=0;x<Wd;x+=8) g.fillRect(x,0,1.5,Hh); for(let y=0;y<Hh;y+=4) g.fillRect(0,y,Wd,1.5); });
     gT.wrapS=THREE.RepeatWrapping; gT.repeat.set(W/2,1);
@@ -3129,7 +3129,7 @@ addEventListener('keydown', e=>{ if(e.key==='Escape' && !$('#pano-wrap').hidden)
     const face=(a,b)=>{ const [x1,z1]=P(...a), [x2,z2]=P(...b), len=Math.hypot(x2-x1,z2-z1); const w=new THREE.Mesh(new THREE.BoxGeometry(len+.3,RISE+.1,.3), cm); w.position.set((x1+x2)/2,(RISE+.1)/2+.05,(z1+z2)/2); w.rotation.y=-Math.atan2(z2-z1,x2-x1); w.castShadow=w.receiveShadow=true; w.userData.noWalk=true; scene.add(w); };
     const hiWall=(a,b)=>{ const [x1,z1]=P(...a), [x2,z2]=P(...b), len=Math.hypot(x2-x1,z2-z1); const w=new THREE.Mesh(new THREE.BoxGeometry(len,1.4,.4), mat('#e9e6dd')); w.position.set((x1+x2)/2,RISE+.7,(z1+z2)/2); w.rotation.y=-Math.atan2(z2-z1,x2-x1); w.castShadow=true; scene.add(w); };
     const gy=x=>580+(x-1061.7)/(1146-1061.7);   // 南緣（校門那道圍牆）的 y
-    [[[1073.5,546],[1073.5,536.2]],[[1064.4,546],[1061.7,580]],[[1061.7,580],[GATE[0],gy(GATE[0])]],
+    [[[1070.3,546],[1070.3,536.2]],[[1064.4,546],[1061.7,580]],[[1061.7,580],[GATE[0],gy(GATE[0])]],
      [[1061.95,377.5],[1061.95,394.2]]].forEach(([a,b])=>face(a,b));   // 北緣（北平路那側）路面和校園同高，不用擋土牆
     // 原本的圍牆在這兩段沒跟著抬，補上和高地同高的牆
     hiWall([1062.1,579.1],[GATE[0]-.6,579.5]);
