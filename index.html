@@ -1983,7 +1983,7 @@ BUILDINGS.forEach(b=>{
     const tileM=new THREE.MeshStandardMaterial({color:'#d9adb8',roughness:.85}), slabM=mat('#e9e6dc'), railM=mat('#f2f1ec'), creamM=mat('#e6e4d2',{roughness:.9});
     const add=(m,f)=>{ m.castShadow=m.receiveShadow=true; m.userData={type:'building',id:b.id,floor:f}; b.group.add(m); b.slabs.push(m); return m; };
     for(let f=0;f<NF;f++){ const y=f*FH+.1, y0=f===0?0:1.0, ys=FH-1.45, rv=1.0;
-      spans.forEach(([xa,xe,NB])=>{ const w=xe-xa, ow=(w-pw*(NB+1))/NB;
+      spans.forEach(([xa,xe,NB])=>{ if(f===0 && xa===xc) return;   /* 文化走廊北端旁那一格一樓沒有拱牆，直接開敞（依使用者標註） */ const w=xe-xa, ow=(w-pw*(NB+1))/NB;
       const sh=new THREE.Shape(); sh.moveTo(0,0); sh.lineTo(w,0); sh.lineTo(w,FH); sh.lineTo(0,FH); sh.lineTo(0,0);
       for(let k=0;k<NB;k++){ const xo=pw+k*(ow+pw), h=new THREE.Path(); h.moveTo(xo,y0); h.lineTo(xo+ow,y0); h.lineTo(xo+ow,ys); h.absellipse(xo+ow/2,ys,ow/2,rv,0,Math.PI,false); h.lineTo(xo,y0); sh.holes.push(h); }
       const pan=add(new THREE.Mesh(new THREE.ExtrudeGeometry(sh,{depth:T,bevelEnabled:false}), tileM),f+1); pan.position.set(xa,y,zF-T);
@@ -2001,6 +2001,28 @@ BUILDINGS.forEach(b=>{
       // 走廊往西一路通到最西端：一樓直接接籃球場上來的那道樓梯（依實景），二樓以上盡頭是牆
       if(f>0) add(new THREE.Mesh(new THREE.BoxGeometry(.25,FH,CD), tileM),f+1).position.set(x1+.12,y+FH/2,zB+CD/2);
     }
+    // 西樓梯間西面一樓（依「三棟一樓左側」實景）：白牆、上緣一道粉紅磁磚、左緣粉紅磁磚壁柱；牆上彩繪吹直笛的女孩、綠色樂譜黑板、坐在課桌前看書的孩子
+    { const [wx]=P(1076,0), L=zf-zr, Hh=FH;
+      const mt=canvasTex(512,320,(g,W,H)=>{ g.fillStyle='#efeee8'; g.fillRect(0,0,W,H);
+        const tl=(x,y,w,h)=>{ g.fillStyle='#e3b3b8'; g.fillRect(x,y,w,h); g.fillStyle='#0000001a'; for(let yy=y;yy<y+h;yy+=8) g.fillRect(x,yy,w,1.2); for(let xx=x;xx<x+w;xx+=8) g.fillRect(xx,y,1.2,h); };
+        tl(0,0,W,46); tl(0,0,40,H);
+        g.fillStyle='#2f5d3e'; g.beginPath(); g.moveTo(70,74); g.lineTo(330,62); g.lineTo(350,170); g.lineTo(80,182); g.closePath(); g.fill(); g.strokeStyle='#7a5a3a'; g.lineWidth=4; g.stroke();
+        g.strokeStyle='#e8eadf'; g.lineWidth=1.2; for(let r=0;r<2;r++) for(let k=0;k<5;k++){ g.beginPath(); g.moveTo(110,90+r*48+k*6); g.lineTo(330,84+r*48+k*6); g.stroke(); }
+        g.fillStyle='#e8eadf'; for(let i=0;i<16;i++){ g.beginPath(); g.arc(125+i*13,96+(i%2)*48+((i*7)%5)*4,3,0,Math.PI*2); g.fill(); }
+        // 吹直笛的女孩
+        g.fillStyle='#e7a0b0'; g.beginPath(); g.moveTo(130,150); g.lineTo(170,150); g.lineTo(190,280); g.lineTo(112,280); g.closePath(); g.fill();
+        g.fillStyle='#f3d6c0'; g.beginPath(); g.arc(150,128,17,0,Math.PI*2); g.fill(); g.fillStyle='#9a6a3a'; g.beginPath(); g.arc(150,122,19,Math.PI,0); g.fill(); g.fillRect(131,122,8,36); g.fillRect(161,122,8,36);
+        g.strokeStyle='#ffffff'; g.lineWidth=4; g.beginPath(); g.moveTo(152,140); g.lineTo(186,170); g.stroke(); g.fillStyle='#d23a3a'; g.fillRect(130,280,18,8); g.fillRect(156,280,18,8);
+        // 課桌前看書的孩子
+        g.fillStyle='#b07a44'; g.fillRect(360,196,150,14); g.fillRect(372,210,8,70); g.fillRect(496,210,8,70);
+        [[392,'#6a4a2a'],[462,'#d96a3a']].forEach(([x,hair])=>{ g.fillStyle='#f3d6c0'; g.beginPath(); g.arc(x,160,16,0,Math.PI*2); g.fill(); g.fillStyle=hair; g.beginPath(); g.arc(x,154,17,Math.PI,0); g.fill(); g.fillStyle='#f4f4f0'; g.fillRect(x-18,176,36,22); g.fillStyle='#2a4a8a'; g.fillRect(x-14,186,28,8); g.fillStyle='#fafaf5'; g.fillRect(x-20,190,40,8); }); });
+      const mm=new THREE.Mesh(new THREE.PlaneGeometry(L,Hh), new THREE.MeshStandardMaterial({map:mt,roughness:.9})); mm.rotation.y=-Math.PI/2; mm.position.set(wx-.02,.1+Hh/2,(zr+zf)/2); mm.userData={floor:1}; b.group.add(mm); b.slabs.push(mm); }
+    // 一樓走廊西段北牆（依實景）：下半段粉紅磁磚、上半白牆，掛一大面深色紀念館銅牌、上面一排金色大字
+    { const [xa]=P(1062.3,0), [xe]=P(1075.8,0), L=xe-xa, zw=zB+.03;
+      const pt=canvasTex(512,160,(g,W,H)=>{ g.fillStyle='#efeee8'; g.fillRect(0,0,W,H); g.fillStyle='#e3b3b8'; g.fillRect(0,H*.55,W,H*.45); g.fillStyle='#00000020'; for(let x=0;x<W;x+=12) g.fillRect(x,H*.55,1.5,H*.45); for(let y=H*.55;y<H;y+=10) g.fillRect(0,y,W,1.5);
+        g.fillStyle='#3e3a34'; g.fillRect(W*.14,H*.12,W*.34,H*.42); g.fillStyle='#8d8678'; for(let r=0;r<9;r++) g.fillRect(W*.16,H*.16+r*H*.04,W*.3,1.5);
+        g.fillStyle='#8a6a2a'; g.font='bold 22px "Noto Serif TC","Microsoft JhengHei",serif'; ['紀','念','館'].forEach((c,i)=>g.fillText(c,W*.52+i*26,H*.18+i*6)); });
+      const pm=new THREE.Mesh(new THREE.PlaneGeometry(L,FH), new THREE.MeshStandardMaterial({map:pt,roughness:.9})); pm.position.set((xa+xe)/2,.1+FH/2,zw); pm.userData={floor:1}; b.group.add(pm); b.slabs.push(pm); }
     // 一樓走廊地坪
     const fl2=new THREE.Mesh(new THREE.PlaneGeometry(xb-x1,CD), mat('#a6a6a0')); fl2.rotation.x=-Math.PI/2; fl2.position.set((x1+xb)/2,.2,zB+CD/2); fl2.receiveShadow=true; b.group.add(fl2);
     // 東面（依老街街景）：米白牆面、粉紅磁磚格框；由南到北是小窗那一格、走廊盡頭的拱門、兩格掛冷氣的實牆、最北一格拱窗
