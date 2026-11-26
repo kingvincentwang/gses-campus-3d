@@ -1824,17 +1824,27 @@ BUILDINGS.forEach(b=>{
   box(aw,ae,zK,zP,G,G+PH,tileM);
   for(let i=0;i<NS;i++){ const h=PH*(NS-i)/(NS+1); box(ae+i*run,ae+(i+1)*run,zK,zP,G,G+h,tileM); }
   // 中段：往東上的樓梯＋平台＋往東下的坡道
-  const bw=x1+16, bp=bw+NS*run, be=bp+4.5, re=be+9;
+  const [kx]=P(1038,0), re=kx-.3-PD, be=re-9, bp=be-4.5, bw=bp-NS*run;   /* 整組往東推到廚房邊：鐵板斜坡就在廚房西牆旁（依使用者標註） */
+  // 依實景：西邊一道樓梯往東爬上平台，平台東邊接一條貼牆的磁磚無障礙坡道往東緩緩下降，坡道尾端轉 90 度，接一段花紋鋼板斜坡往南下到巷子
   for(let i=0;i<NS;i++){ const h=PH*(i+1)/(NS+1); box(bw+i*run,bw+(i+1)*run,zK,zP,G,G+h,tileM); }
   box(bp,be,zK,zP,G,G+PH,tileM);
-  { const L=re-be, r=put(new THREE.Mesh(new THREE.BoxGeometry(Math.hypot(L,PH),.16,PD), mat('#9a9da3',{roughness:.8}))); r.position.set((be+re)/2,G+PH/2-.08,(zK+zP)/2); r.rotation.z=-Math.atan2(PH,L);
-    box(be,be+L*.5,zK,zP-.02,G,G+PH*.45,tileM); }
+  const h1=PH*.4, LD=PD, xl=re, xl2=re+LD, L2=4.2;
+  { const L=re-be, a=Math.atan2(PH-h1,L), rp=put(new THREE.Mesh(new THREE.BoxGeometry(Math.hypot(L,PH-h1),.2,PD), tileM)); rp.position.set((be+re)/2,G+(PH+h1)/2-.1,(zK+zP)/2); rp.rotation.z=-a;
+    const N=8; for(let i=0;i<N;i++){ const xa=be+L*i/N, xb=be+L*(i+1)/N, hh=PH-(PH-h1)*(i+1)/N; box(xa,xb,zK,zP,G,G+hh,tileM); } }   // 坡道底下是實心的磁磚牆
+  box(xl,xl2,zK,zP,G,G+h1,tileM);   // 轉角平台
+  const plT=canvasTex(64,64,(g,W,Hh)=>{ g.fillStyle='#7d8288'; g.fillRect(0,0,W,Hh); g.strokeStyle='#a9aeb4'; g.lineWidth=2; for(let y=4;y<Hh;y+=10) for(let x=((y/10)%2)*6;x<W;x+=12){ g.beginPath(); g.moveTo(x,y+3); g.lineTo(x+5,y); g.stroke(); } });
+  plT.wrapS=plT.wrapT=THREE.RepeatWrapping; plT.repeat.set(LD/1.2,Math.hypot(L2,h1)/1.2);
+  { const r=put(new THREE.Mesh(new THREE.BoxGeometry(LD,.12,Math.hypot(L2,h1)), new THREE.MeshStandardMaterial({map:plT,roughness:.45,metalness:.5}))); r.position.set((xl+xl2)/2,G+h1/2,zP+L2/2); r.rotation.x=Math.atan2(h1,L2); }   // 鐵板斜坡往南下
   // 不鏽鋼欄杆（平台和坡道朝巷子的外緣）
   const rail=(xa,ya,xb,yb,z)=>{ const len=Math.hypot(xb-xa,yb-ya), ang=Math.atan2(yb-ya,xb-xa);
     [.95,.5].forEach(hh=>{ const r=new THREE.Mesh(new THREE.BoxGeometry(len,.05,.05), steel); r.position.set((xa+xb)/2,(ya+yb)/2+hh,z); r.rotation.z=ang; scene.add(r); });
     const n=Math.max(1,Math.round(Math.abs(xb-xa)/1.1)); for(let i=0;i<=n;i++){ const p=new THREE.Mesh(new THREE.BoxGeometry(.05,.95,.05), steel); p.position.set(xa+(xb-xa)*i/n,ya+(yb-ya)*i/n+.47,z); scene.add(p); } };
   rail(aw,G+PH,ae,G+PH,zP-.06); rail(ae,G+PH,ae+NS*run,G+PH/(NS+1),zP-.06);
-  rail(bw,G+PH/(NS+1),bp,G+PH,zP-.06); rail(bp,G+PH,be,G+PH,zP-.06); rail(be,G+PH,re,G,zP-.06);
+  rail(bw,G+PH/(NS+1),bp,G+PH,zP-.06); rail(bp,G+PH,be,G+PH,zP-.06); rail(be,G+PH,re,G+h1,zP-.06); rail(re,G+h1,xl2,G+h1,zK+.06);
+  // 鐵板斜坡兩側的不鏽鋼欄杆（沿南北向）
+  [xl+.06,xl2-.06].forEach(x=>{ const len=Math.hypot(L2,h1), ang=Math.atan2(h1,L2);
+    [.95,.5].forEach(hh=>{ const r=new THREE.Mesh(new THREE.BoxGeometry(.05,.05,len), steel); r.position.set(x,G+h1/2+hh,zP+L2/2); r.rotation.x=ang; scene.add(r); });
+    for(let i=0;i<=4;i++){ const p=new THREE.Mesh(new THREE.BoxGeometry(.05,.95,.05), steel); p.position.set(x,G+h1*(1-i/4)+.47,zP+L2*i/4); scene.add(p); } });
   // 上方的懸挑板（整排）
   box(x1+1,x2-9,zK,zK+3.4,4.1,4.5,cream);
   // 東端：牆上的深色直柵；巷子盡頭橫跨的鐵皮遮棚
@@ -1926,21 +1936,7 @@ BUILDINGS.forEach(b=>{
     const tM=(rx,ry)=>{ const t=chk.clone(); t.needsUpdate=true; t.wrapS=t.wrapT=THREE.RepeatWrapping; t.repeat.set(rx,ry); return new THREE.MeshStandardMaterial({map:t,roughness:.85}); };
     const PH=1.2, PD=1.8, zP=zs+PD, G=.1, NS=7, run=.45, x0=P(964,0)[0]+33, sx1=x0+NS*run, rw=1.7, rx1=xb-.3, rx0=rx1-rw, RL=2.6, floorM=mat('#d9d4c6');
     const bx=(xa,xb2,za,zb,y0,y1,m,fl=1)=>{ const o=put(new THREE.Mesh(new THREE.BoxGeometry(xb2-xa,y1-y0,zb-za),m),fl); o.position.set((xa+xb2)/2,(y0+y1)/2,(za+zb)/2); return o; };
-    for(let i=0;i<NS;i++){ const h=PH*(i+1)/(NS+1); bx(x0+i*run,x0+(i+1)*run,zs,zP,G,G+h,tM(.5,h)); }   // 往東爬的樓梯
-    bx(sx1,rx0,zs,zP,G,G+PH,tM((rx0-sx1)/1.2,1));   // 高台
-    put(new THREE.Mesh(new THREE.PlaneGeometry(rx1-sx1,PD), floorM),1).rotation.x=-Math.PI/2; b.slabs[b.slabs.length-1].position.set((sx1+rx1)/2,G+PH+.01,(zs+zP)/2);
-    // 花紋鋼板坡道：從巷子往北爬上高台
-    { const plT=canvasTex(64,64,(c,W,Hh)=>{ c.fillStyle='#4a4f55'; c.fillRect(0,0,W,Hh); c.strokeStyle='#666c73'; c.lineWidth=3; for(let y=4;y<Hh;y+=12) for(let x=(y/12%2)*8+4;x<W;x+=16){ c.beginPath(); c.moveTo(x-3,y-3); c.lineTo(x+3,y+3); c.stroke(); } }); plT.wrapS=plT.wrapT=THREE.RepeatWrapping; plT.repeat.set(2,4);
-      const L=Math.hypot(RL,PH), rp=put(new THREE.Mesh(new THREE.BoxGeometry(rw,.08,L), new THREE.MeshStandardMaterial({map:plT,metalness:.5,roughness:.5})),1); rp.position.set((rx0+rx1)/2,G+PH/2,zP+RL/2); rp.rotation.x=Math.atan2(PH,RL);
-      bx(rx0,rx1,zs,zP,G,G+PH-.04,tM(1.2,1));
-      [rx0+.05,rx1-.05].forEach(x=>{ [.95,.6].forEach(hh=>{ const r=put(new THREE.Mesh(new THREE.BoxGeometry(.05,.05,L), steel),1); r.position.set(x,G+PH/2+hh,zP+RL/2); r.rotation.x=Math.atan2(PH,RL); });
-        for(let k=0;k<=3;k++) bx(x-.025,x+.025,zP+RL*k/3-.025,zP+RL*k/3+.025,G+PH*(1-k/3),G+PH*(1-k/3)+.95,steel); }); }
-    // 樓梯和高台朝巷子那邊的不鏽鋼欄杆
-    { const rail=(xa,ya,xb2,yb)=>{ const len=Math.hypot(xb2-xa,yb-ya), ang=Math.atan2(yb-ya,xb2-xa); [.95,.5].forEach(hh=>{ const r=put(new THREE.Mesh(new THREE.BoxGeometry(len,.05,.05), steel),1); r.position.set((xa+xb2)/2,(ya+yb)/2+hh,zP-.06); r.rotation.z=ang; });
-        const n=Math.max(1,Math.round(Math.abs(xb2-xa)/.9)); for(let k=0;k<=n;k++) bx(xa+(xb2-xa)*k/n-.025,xa+(xb2-xa)*k/n+.025,zP-.085,zP-.035,ya+(yb-ya)*k/n,ya+(yb-ya)*k/n+.95,steel); };
-      rail(x0,G+PH/(NS+1),sx1,G+PH); rail(sx1,G+PH,rx0,G+PH); }
-    // 兩根磁磚方柱（從高台頂到天花板）
-    [sx1+.3,rx0-.3].forEach(x=>bx(x-.35,x+.35,zs,zs+.7,G+PH,fh+.1,tM(.6,2.2)));
+    /* 這一段原本的樓梯、高台、往北的鋼板坡道拿掉：改由巷子那一組（樓梯→平台→磁磚坡道→轉 90 度鐵板斜坡）一路接到廚房邊（依使用者標註） */
   }
 }
 // 第三棟西端的深色瓦片四坡小屋頂（籃球場看得到）
