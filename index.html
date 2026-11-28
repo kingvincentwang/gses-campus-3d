@@ -1749,24 +1749,87 @@ BUILDINGS.forEach(b=>{
         // 走廊東端右手邊（南側）一座往南爬到二樓的樓梯（依實景）：灰白牆夾著，兩側不鏽鋼扶手，頂端平台前一道深色鐵欄杆
         const {sxa,sxb,sxs,sxd,sz0,s0,sz1}=B1ST(bx,z1), N=13, run=.3, rise=fh/N;
         box(ax,sxa,z1+cw,z2); box(sxb,bx,z1+cw,z2); box(sxa,sxb,sz1,z2);
-        { const stone=mat('#9c9b95',{roughness:.9}), wallM=mat('#d9dcdc',{roughness:.95}), steel=mat('#c9cdcf',{metalness:.55,roughness:.35}), iron=mat('#2d2f31'), sw=sxs-sxa, scx=(sxa+sxs)/2, add=m=>{ m.castShadow=m.receiveShadow=true; m.userData={type:'building',id:b.id,floor:1}; b.group.add(m); b.slabs.push(m); return m; };
+        { const stone=mat('#a3a29c',{roughness:.9}), wallM=mat('#d3dade',{roughness:.95,emissive:'#3c4246'}), steel=mat('#dfe3e5',{metalness:.5,roughness:.3,emissive:'#4a4e50'}), iron=mat('#2d2f31'), sw=sxs-sxa, scx=(sxa+sxs)/2, add=m=>{ m.castShadow=m.receiveShadow=true; m.userData={type:'building',id:b.id,floor:1}; b.group.add(m); b.slabs.push(m); return m; };
           const fl0=new THREE.Mesh(new THREE.PlaneGeometry(sxb-sxa,sz1-sz0), mat('#d8d2c4')); fl0.rotation.x=-Math.PI/2; fl0.position.set((sxa+sxb)/2,.135,(sz0+sz1)/2); add(fl0);   // 前面一整塊淺色地磚
-          for(let i=0;i<N;i++){ const h=rise*(i+1); add(new THREE.Mesh(new THREE.BoxGeometry(sw,h,run), stone)).position.set(scx,.1+h/2,s0+(i+.5)*run); }
-          const sL=s0+N*run; add(new THREE.Mesh(new THREE.BoxGeometry(sw,fh,sz1-sL), stone)).position.set(scx,.1+fh/2,(sL+sz1)/2);   // 頂端平台
-          add(new THREE.Mesh(new THREE.BoxGeometry(sxd-sxs,2*fh,sz1-s0), wallM)).position.set((sxs+sxd)/2,.1+fh,(s0+sz1)/2);   // 樓梯和置物空間之間的隔牆
+          // 折返樓梯（依實景）：第一段在西半邊往南爬到半層的轉角平台，第二段在東半邊折回往北爬上二樓
+          const N1=7, r2=fh/(2*N1), zL=s0+N1*run, yL=fh/2, ew=sxb-sxd, ecx=(sxd+sxb)/2;
+          for(let i=0;i<N1;i++){ const h=r2*(i+1); add(new THREE.Mesh(new THREE.BoxGeometry(sw,h,run), stone)).position.set(scx,.1+h/2,s0+(i+.5)*run); }
+          add(new THREE.Mesh(new THREE.BoxGeometry(sxb-sxa,yL,sz1-zL), stone)).position.set((sxa+sxb)/2,.1+yL/2,(zL+sz1)/2);   // 轉角平台
+          for(let j=0;j<N1;j++){ const h=yL+r2*(j+1); add(new THREE.Mesh(new THREE.BoxGeometry(ew,h,run), stone)).position.set(ecx,.1+h/2,zL-(j+.5)*run); }   // 第二段（底下實心）
+          // 二樓樓梯口（依實景）：一整塊樓板從二樓走廊接進來，承接往下的樓梯
+          add(new THREE.Mesh(new THREE.BoxGeometry(sxb-sxa,.3,s0-z1), mat('#cfcbc2',{roughness:.6}))).position.set((sxa+sxb)/2,.1+fh-.15,(z1+s0)/2);
+          { const tz=new THREE.Mesh(new THREE.PlaneGeometry(sxb-sxa,s0-z1), new THREE.MeshStandardMaterial({map:terrazzoTex(sxb-sxa,s0-z1),roughness:.4})); tz.rotation.x=-Math.PI/2; tz.position.set((sxa+sxb)/2,.1+fh+.005,(z1+s0)/2); add(tz); }
+
+          add(new THREE.Mesh(new THREE.BoxGeometry(sxd-sxs,3*fh,zL-s0), wallM)).position.set((sxs+sxd)/2,.1+1.5*fh,(s0+zL)/2);   // 兩段樓梯中間的隔牆（一路到三樓）
+          // 兩段樓梯兩側：牆上兩道圓管不鏽鋼扶手，用小托架固定在牆上（依實景）
+          { const L1=Math.hypot(N1*run,yL), a1=Math.atan2(yL,N1*run); [[sxa+.1,0,1,1],[sxs-.1,0,1,-1],[sxd+.1,yL,-1,1],[sxb-.1,yL,-1,-1]].forEach(([rx,y0,dir,side])=>{
+            [.92,.72].forEach(hh=>{ const r=new THREE.Mesh(new THREE.CylinderGeometry(.025,.025,L1,8), steel); r.rotation.x=Math.PI/2-dir*a1; r.position.set(rx,.1+y0+yL/2+hh,(s0+zL)/2); add(r).userData.noWalk=true;
+              for(let k=1;k<4;k++){ const u=k/4, br=new THREE.Mesh(new THREE.BoxGeometry(.1,.02,.02), steel); br.position.set(rx-side*.05,.1+y0+(dir>0?u:1-u)*yL+hh-.03,s0+(zL-s0)*u); add(br).userData.noWalk=true; } }); }); }
+          // 轉角平台的鐵窗（依實景）：地上一道矮洗石子邊，深色扁鐵直條一路高過頭頂，下段兩道橫料，中間一道銀色扶手橫桿；外面是亮的
+          { const y0=.1+yL, zg=sz1-.12, ow=sxb-sxa-.1, ocx=(sxa+sxb)/2;
+            const sky=canvasTex(64,64,(g,W,H)=>{ const gr=g.createLinearGradient(0,0,0,H); gr.addColorStop(0,'#dfe9ea'); gr.addColorStop(.6,'#b9cfb4'); gr.addColorStop(1,'#6f8f5e'); g.fillStyle=gr; g.fillRect(0,0,W,H); });
+            const op=new THREE.Mesh(new THREE.PlaneGeometry(ow,2.3), new THREE.MeshBasicMaterial({map:sky})); op.rotation.y=Math.PI; op.position.set(ocx,y0+1.15,sz1-.03); add(op);
+            add(new THREE.Mesh(new THREE.BoxGeometry(ow,.12,.2), stone)).position.set(ocx,y0+.06,zg);
+            for(let x=sxa+.12;x<sxb-.1;x+=.13) add(new THREE.Mesh(new THREE.BoxGeometry(.05,2.15,.02), iron)).userData.noWalk=true, b.slabs[b.slabs.length-1].position.set(x,y0+.12+1.07,zg);
+            [.55,.72].forEach(h=>{ const m=add(new THREE.Mesh(new THREE.BoxGeometry(ow,.04,.04), iron)); m.position.set(ocx,y0+h,zg-.02); m.userData.noWalk=true; });
+            { const m=add(new THREE.Mesh(new THREE.BoxGeometry(ow,.05,.07), steel)); m.position.set(ocx,y0+1.05,zg-.05); m.userData.noWalk=true; }
+            const blk=new THREE.Mesh(new THREE.BoxGeometry(ow,2.2,.15), new THREE.MeshBasicMaterial({visible:false})); blk.position.set(ocx,y0+1.1,zg); b.group.add(blk); }   // 散步時擋住鐵窗
+          // 東牆（外牆）在第二段樓梯旁開一扇直條鐵窗（依實景，從二樓往下看在左手邊）
+          { const wz0=s0+.4, wz1=zL-.4, wy0=.1+yL+.9, wy1=.1+fh+.9, li=new THREE.Mesh(new THREE.PlaneGeometry(wz1-wz0,wy1-wy0), new THREE.MeshBasicMaterial({color:'#dfe8e4'})); li.rotation.y=-Math.PI/2; li.position.set(sxb-.03,(wy0+wy1)/2,(wz0+wz1)/2); add(li);
+            for(let z=wz0+.1;z<wz1;z+=.14){ const bar=new THREE.Mesh(new THREE.BoxGeometry(.03,wy1-wy0,.03), steel); bar.position.set(sxb-.06,(wy0+wy1)/2,z); add(bar).userData.noWalk=true; }
+            [wy0,wy1].forEach(y=>{ const f=new THREE.Mesh(new THREE.BoxGeometry(.08,.08,wz1-wz0+.1), mat('#f2f2ee')); f.position.set(sxb-.05,y,(wz0+wz1)/2); add(f).userData.noWalk=true; }); }
+          // 二樓往三樓（依實景，從二樓看在右手邊往上）：同樣折返，第一段在西半邊往南爬到轉角平台，第二段在東半邊折回上三樓；懸空的踏階加底下斜樓板
+          { const Y=fh, soff=(xa,xb,za,zb,ya,yb)=>{ const L=Math.hypot(zb-za,yb-ya), sl=new THREE.Mesh(new THREE.BoxGeometry(xb-xa,.18,L), mat('#e4e6e6',{emissive:'#3a3d3e'})); sl.position.set((xa+xb)/2,(ya+yb)/2-.2,(za+zb)/2); sl.rotation.x=-Math.atan((yb-ya)/(zb-za)); add(sl).userData.noWalk=true; };
+            for(let i=0;i<N1;i++){ const t=.1+Y+r2*(i+1); add(new THREE.Mesh(new THREE.BoxGeometry(sw,.25,run), stone)).position.set(scx,t-.125,s0+(i+.5)*run); }
+            soff(sxa,sxs,s0,zL,.1+Y,.1+Y+yL);
+            add(new THREE.Mesh(new THREE.BoxGeometry(sxb-sxa,.3,sz1-zL), stone)).position.set((sxa+sxb)/2,.1+Y+yL-.15,(zL+sz1)/2);   // 轉角平台
+            for(let j=0;j<N1;j++){ const t=.1+Y+yL+r2*(j+1); add(new THREE.Mesh(new THREE.BoxGeometry(ew,.25,run), stone)).position.set(ecx,t-.125,zL-(j+.5)*run); }
+            soff(sxd,sxb,zL,s0,.1+Y+yL,.1+2*Y);
+            // 三樓樓梯口樓板（接三樓走廊），西半邊邊緣欄杆
+            add(new THREE.Mesh(new THREE.BoxGeometry(sxb-sxa,.3,s0-z1), mat('#cfcbc2',{roughness:.6}))).position.set((sxa+sxb)/2,.1+2*Y-.15,(z1+s0)/2);
+            { const tz=new THREE.Mesh(new THREE.PlaneGeometry(sxb-sxa,s0-z1), new THREE.MeshStandardMaterial({map:terrazzoTex(sxb-sxa,s0-z1),roughness:.4})); tz.rotation.x=-Math.PI/2; tz.position.set((sxa+sxb)/2,.1+2*Y+.005,(z1+s0)/2); add(tz); }
+            { const hh=.95, za=s0-.05; const r=new THREE.Mesh(new THREE.BoxGeometry(sxs-sxa,.05,.05), steel); r.position.set((sxa+sxs)/2,.1+2*Y+hh,za); add(r).userData.noWalk=true;
+              for(let x=sxa+.1;x<sxs;x+=.12){ const pp=new THREE.Mesh(new THREE.BoxGeometry(.03,hh,.03), steel); pp.position.set(x,.1+2*Y+hh/2,za); add(pp).userData.noWalk=true; }
+              const blk=new THREE.Mesh(new THREE.BoxGeometry(sxs-sxa,1.2,.1), new THREE.MeshBasicMaterial({visible:false})); blk.position.set((sxa+sxs)/2,.1+2*Y+.6,za); b.group.add(blk); }
+            // 兩段扶手
+            { const L1=Math.hypot(N1*run,yL), a1=Math.atan2(yL,N1*run); [[sxa+.1,Y,1],[sxs-.1,Y,1],[sxd+.1,Y+yL,-1],[sxb-.1,Y+yL,-1]].forEach(([rx,y0,dir])=>[.92,.72].forEach(hh=>{ const r=new THREE.Mesh(new THREE.CylinderGeometry(.025,.025,L1,8), steel); r.rotation.x=Math.PI/2-dir*a1; r.position.set(rx,.1+y0+yL/2+hh,(s0+zL)/2); add(r).userData.noWalk=true; })); }
+            // 轉角平台的直條鐵窗（和下面那層一樣）
+            { const y0=.1+Y+yL, zg=sz1-.12, ow=sxb-sxa-.1, ocx=(sxa+sxb)/2;
+              const sky=canvasTex(64,64,(g,W,H)=>{ const gr=g.createLinearGradient(0,0,0,H); gr.addColorStop(0,'#e4ecee'); gr.addColorStop(.7,'#c4d6c0'); gr.addColorStop(1,'#8fae7c'); g.fillStyle=gr; g.fillRect(0,0,W,H); });
+              const op=new THREE.Mesh(new THREE.PlaneGeometry(ow,2.3), new THREE.MeshBasicMaterial({map:sky})); op.rotation.y=Math.PI; op.position.set(ocx,y0+1.15,sz1-.03); add(op);
+              add(new THREE.Mesh(new THREE.BoxGeometry(ow,.12,.2), stone)).position.set(ocx,y0+.06,zg);
+              for(let x=sxa+.12;x<sxb-.1;x+=.13){ const m=add(new THREE.Mesh(new THREE.BoxGeometry(.05,2.15,.02), iron)); m.position.set(x,y0+.12+1.07,zg); m.userData.noWalk=true; }
+              [.55,.72].forEach(h=>{ const m=add(new THREE.Mesh(new THREE.BoxGeometry(ow,.04,.04), iron)); m.position.set(ocx,y0+h,zg-.02); m.userData.noWalk=true; });
+              { const m=add(new THREE.Mesh(new THREE.BoxGeometry(ow,.05,.07), steel)); m.position.set(ocx,y0+1.05,zg-.05); m.userData.noWalk=true; }
+              const blk=new THREE.Mesh(new THREE.BoxGeometry(ow,2.2,.15), new THREE.MeshBasicMaterial({visible:false})); blk.position.set(ocx,y0+1.1,zg); b.group.add(blk); }
+            // 三樓樓梯間的牆
+            { const wy=.1+2.5*Y; const w3=new THREE.Mesh(new THREE.PlaneGeometry(sxb-sxa,Y), wallM); w3.rotation.y=Math.PI; w3.position.set((sxa+sxb)/2,wy,sz1-.015); add(w3);
+              const e3=new THREE.Mesh(new THREE.PlaneGeometry(sz1-z1,Y), wallM); e3.rotation.y=-Math.PI/2; e3.position.set(sxb-.01,wy,(z1+sz1)/2); add(e3);
+              const w3w=new THREE.Mesh(new THREE.PlaneGeometry(sz1-z1,Y), wallM); w3w.rotation.y=Math.PI/2; w3w.position.set(sxa+.01,wy,(z1+sz1)/2); add(w3w); } }
+          // 二樓樓梯間的白牆（蓋住外牆貼圖）
+          { const w2=new THREE.Mesh(new THREE.PlaneGeometry(sxb-sxa,fh), wallM); w2.rotation.y=Math.PI; w2.position.set((sxa+sxb)/2,.1+fh*1.5,sz1-.015); add(w2);
+            const e2=new THREE.Mesh(new THREE.PlaneGeometry(sz1-sz0,fh), wallM); e2.rotation.y=-Math.PI/2; e2.position.set(sxb-.01,.1+fh*1.5,(sz0+sz1)/2); add(e2); }
           { const w=new THREE.Mesh(new THREE.PlaneGeometry(sz1-sz0,2*fh), wallM); w.rotation.y=Math.PI/2; w.position.set(sxa+.01,.1+fh,(sz0+sz1)/2); add(w); }   // 西側牆
-          const L=Math.hypot(N*run,fh); [sxa+.09,sxs-.09].forEach(rx=>{ const r=new THREE.Mesh(new THREE.BoxGeometry(.05,.05,L), steel); r.position.set(rx,.1+fh/2+.9,s0+N*run/2); r.rotation.x=-Math.atan2(fh,N*run); add(r); });   // 兩側不鏽鋼扶手
           { const w=new THREE.Mesh(new THREE.PlaneGeometry(sz1-sz0,fh), wallM); w.rotation.y=-Math.PI/2; w.position.set(sxb-.01,.1+fh/2,(sz0+sz1)/2); add(w); }   // 東側牆
           { const w=new THREE.Mesh(new THREE.PlaneGeometry(sxb-sxd,fh), wallM); w.rotation.y=Math.PI; w.position.set((sxd+sxb)/2,.1+fh/2,sz1-.01); add(w); }   // 置物空間後牆
           const bw=new THREE.Mesh(new THREE.PlaneGeometry(sw,fh), wallM); bw.rotation.y=Math.PI; bw.position.set(scx,.1+fh*1.5,sz1-.01); add(bw);
-          [[sxa,sxb,sz0,s0],[sxd,sxb,s0,sz1]].forEach(([xa,xb,za,zb])=>{ const c=new THREE.Mesh(new THREE.PlaneGeometry(xb-xa,zb-za), mat('#e6e6e2')); c.rotation.x=Math.PI/2; c.position.set((xa+xb)/2,fh+.08,(za+zb)/2); add(c); });   // 前面地坪和置物空間的天花板
-          const zr=sz1-.15, n=10; [fh+.1+1.05,fh+.1+.12].forEach(y=>add(new THREE.Mesh(new THREE.BoxGeometry(sw,.05,.05), iron)).position.set(scx,y,zr));
-          for(let k=0;k<=n;k++) add(new THREE.Mesh(new THREE.BoxGeometry(.03,1,.03), iron)).position.set(sxa+.05+(sw-.1)*k/n,fh+.1+.6,zr); }
+          [[sxa,sxd,sz0,s0]].forEach(([xa,xb,za,zb])=>{ const c=new THREE.Mesh(new THREE.PlaneGeometry(xb-xa,zb-za), mat('#e6e6e2')); c.rotation.x=Math.PI/2; c.position.set((xa+xb)/2,fh+.08,(za+zb)/2); add(c); });   // 前面地坪和置物空間的天花板
+        }
         const fl=new THREE.Mesh(new THREE.PlaneGeometry(bx-tx,cw), mat('#b8b4aa')); fl.rotation.x=-Math.PI/2; fl.position.set((tx+bx)/2,.13,z1+cw/2); fl.receiveShadow=true; b.group.add(fl);
         const ceil=new THREE.Mesh(new THREE.PlaneGeometry(bx-tx,cw), mat('#eeeae0')); ceil.rotation.x=Math.PI/2; ceil.position.set((tx+bx)/2,fh+.08,z1+cw/2); b.group.add(ceil);
         return; }
-      if(b.id==='b1' && f===1 && b.gap && sx1===b.gap[1]){ const {sxa,sxd,s0,sz1}=B1ST(bx,z1); box(ax,sxa,z1,z2); box(sxd,bx,z1,z2); box(sxa,sxd,z1,s0); box(sxa,sxd,sz1,z2); return; }   // 二樓：東端樓梯上方挖空（置物空間上面不挖）
-      if(b.id==='b1' && f===1 && b.gap && sx2===b.gap[0]){ const [hx0]=P(ST1.x0,0), [hx1]=P(ST1.x1,0), [,hzS]=P(0,ST1.ys); box(ax,hx0,z1,z2); box(hx1,bx,z1,z2); box(hx0,hx1,hzS,z2); return; }   // 二樓：樓梯間上方挖空
+      if(b.id==='b1' && f===1 && b.gap && sx1===b.gap[1]){ const {sxa,sxb,sz0,sz1}=B1ST(bx,z1), zR=z1+2.77; box(ax,sxa,zR,z2);   /* 穿堂以東二樓教室北牆往後退，和穿堂二樓女兒牆對齊（依使用者標註），走廊跟著變寬 */
+          { const fl=new THREE.Mesh(new THREE.BoxGeometry(sxa-ax,.3,zR-z1), mat('#d9d6cc')); fl.position.set((ax+sxa)/2,fh+.1,(z1+zR)/2); fl.receiveShadow=true; fl.userData={type:'building',id:b.id,floor:2}; b.group.add(fl); b.slabs.push(fl); } box(sxb,bx,z1,z2); box(sxa,sxb,sz1,z2); return; }   /* 北邊一路開到二樓走廊：樓梯口是一塊樓板 */   // 二樓：東端樓梯間整個挖空（折返樓梯第二段爬上來）
+      if(b.id==='b1' && f===1 && b.gap && sx2===b.gap[0]){ const [hx0]=P(ST1.x0,0), [hx1]=P(ST1.x1,0), [,hzS]=P(0,ST1.ys), zR=z1+2.77, [xw0]=P(1000,0); box(ax,xw0,z1,z2); box(xw0,hx0,zR,z2); box(hx1,bx,zR,z2); box(hx0,hx1,hzS,z2);   /* 文化走廊以西的二樓也是走廊（依實景），教室往後退；北緣一道矮牆加不鏽鋼扶手 */
+        { const L=hx0-xw0, cxw=(xw0+hx0)/2, add2=m=>{ m.castShadow=m.receiveShadow=true; m.userData={type:'building',id:b.id,floor:2}; b.group.add(m); b.slabs.push(m); return m; };
+          add2(new THREE.Mesh(new THREE.BoxGeometry(L,.3,zR-z1), mat('#d9d6cc'))).position.set(cxw,fh+.1,(z1+zR)/2);
+          { const tz=new THREE.Mesh(new THREE.PlaneGeometry(L,zR-z1), new THREE.MeshStandardMaterial({map:terrazzoTex(L,zR-z1),roughness:.4})); tz.rotation.x=-Math.PI/2; tz.position.set(cxw,fh+.255,(z1+zR)/2); add2(tz); }
+          add2(new THREE.Mesh(new THREE.BoxGeometry(L,1.0,.22), mat('#c9cbc9'))).position.set(cxw,fh+.25+.5,z1+.11);
+          add2(new THREE.Mesh(new THREE.BoxGeometry(L,.05,.05), mat('#c9cdcf',{metalness:.5}))).position.set(cxw,fh+.25+1.12,z1+.2); }   /* 穿堂以西到文化走廊那段二樓教室也往後退，空出走廊 */
+        { const fl=new THREE.Mesh(new THREE.BoxGeometry(bx-hx1,.3,zR-z1), mat('#d9d6cc')); fl.position.set((hx1+bx)/2,fh+.1,(z1+zR)/2); fl.receiveShadow=true; fl.userData={type:'building',id:b.id,floor:2}; b.group.add(fl); b.slabs.push(fl); } return; }   // 二樓：樓梯間上方挖空
+      if(b.id==='b1' && f===2 && sx2===b.r[2]){ const {sxa,sxb,sz1}=B1ST(bx,z1), zR=z1+2.77, [gx]=P(b.gap[1],0); box(ax,gx,z1,z2); box(gx,sxa,zR,z2);   /* 三樓穿堂以東的教室也往後退，和二樓對齊 */
+          { const fl=new THREE.Mesh(new THREE.BoxGeometry(sxa-gx,.3,zR-z1), mat('#d9d6cc')); fl.position.set((gx+sxa)/2,2*fh+.1,(z1+zR)/2); fl.receiveShadow=true; fl.userData={type:'building',id:b.id,floor:3}; b.group.add(fl); b.slabs.push(fl); } box(sxb,bx,z1,z2); box(sxa,sxb,sz1,z2); return; }   // 三樓：東端樓梯間挖空
+      if(b.id==='b4' && f>=1){ box(ax,bx,z1,z2-1.7); return; }   // 二、三樓南端讓出第一棟北面走廊：一路往東通到第一棟東端樓梯口（依實景，全部相通）
       if(b.id==='b4' && f===0){ box(ax,bx,z1+2.2,z2); return; }   // 一樓最北端讓出第二棟走廊往東的通道
       if(b.id==='b3'){ box(ax,bx,z1,z2-2.4); return; }   // 南側每層讓出一條凹進去的拱廊走廊（拱圈、樓板另外蓋）
       if(b.id==='b1' && f===0 && b.gap && sx2===b.gap[0]){
@@ -2117,7 +2180,7 @@ BUILDINGS.forEach(b=>{
       z+=wd; return; }
     const col=mat(e[1]), wd=U*e[2], zc=z+wd/2;
     // 二樓、三樓欄牆（一樓走廊是開放的，沒有矮牆）
-    for(let f=1;f<NF;f++) put(new THREE.Mesh(new THREE.BoxGeometry(.25,1.15,wd), col),f+1).position.set(fx,f*fh+.1+.58,zc);
+    { const zEnd=Math.min(z+wd,z2-1.75), wc=zEnd-z; if(wc>.05) for(let f=1;f<NF;f++) put(new THREE.Mesh(new THREE.BoxGeometry(.25,1.15,wc), col),f+1).position.set(fx,f*fh+.1+.58,z+wc/2); }   // 最南端讓出第一棟北面走廊（二、三樓和第一棟走廊直通）
     // 頂上尖角女兒牆
     for(let k=0;k<e[2];k++){ const sh=new THREE.Shape(); sh.moveTo(-U/2,0); sh.lineTo(U/2,0); sh.lineTo(U/2,1.0); sh.lineTo(0,1.6); sh.lineTo(-U/2,1.0); sh.lineTo(-U/2,0);
       const gg=new THREE.ExtrudeGeometry(sh,{depth:.25,bevelEnabled:false}); gg.rotateY(Math.PI/2); const m=put(new THREE.Mesh(gg,col),NF); m.position.set(fx-.12,H-.1,z+U*k+U/2); }
@@ -2198,11 +2261,12 @@ BUILDINGS.forEach(b=>{
   // 穿堂裡二樓橫過去的走廊（依實景：就在澳洲柱正上方，和二樓前面的走廊連成一線）：灰白樓板、橘色磁磚欄牆、不鏽鋼扶手
   { const zc=z1+2.4, edgeM=mat('#d3d8de'), tileM=mat('#ecba78',{emissive:'#3a2810'});
     // 二樓走廊高度的一道白色橫樑：從澳洲柱往南接到法國柱（依實景）
-    { const xb=XM, za=zc+1.2, zb=z2-.9-.45; putP(new THREE.Mesh(new THREE.BoxGeometry(.45,.4,zb-za), mat('#e9ebec')),2).position.set(xb,fh+.05,(za+zb)/2); }
-    putP(new THREE.Mesh(new THREE.BoxGeometry(g2-g1,.45,2.4), edgeM),2).position.set((g1+g2)/2,fh-.05,zc);
+    const zP=zc+.48-.11;   // 女兒牆南面和澳洲柱南緣切齊（依使用者標註），走廊樓板跟著縮到這裡
+    { const xb=XM, za=zP+.11, zb=z2-.9-.45; putP(new THREE.Mesh(new THREE.BoxGeometry(.45,.4,zb-za), mat('#e9ebec')),2).position.set(xb,fh+.05,(za+zb)/2); }
+    putP(new THREE.Mesh(new THREE.BoxGeometry(g2-g1,.45,zP+.11-(zc-1.2)), edgeM),2).position.set((g1+g2)/2,fh-.05,(zc-1.2+zP+.11)/2);
     // 這條二樓走廊往北一路接到北面（中庭那側）的二樓走廊，中間沒有縫：一樓走廊經過穿堂時頭上是平的天花（依實景）
     putP(new THREE.Mesh(new THREE.BoxGeometry(g2-g1,.45,zc-1.2-z1+.05), edgeM),2).position.set((g1+g2)/2,fh-.05,(z1+zc-1.2)/2);
-    [zc+1.2].forEach(z=>{ putP(new THREE.Mesh(new THREE.BoxGeometry(g2-g1,1.05,.22), tileM),2).position.set((g1+g2)/2,fh+.7,z);
+    [zP].forEach(z=>{ putP(new THREE.Mesh(new THREE.BoxGeometry(g2-g1,1.05,.22), tileM),2).position.set((g1+g2)/2,fh+.7,z);
       putP(new THREE.Mesh(new THREE.BoxGeometry(g2-g1,.05,.05), mat('#c9cdcf',{metalness:.5})),2).position.set((g1+g2)/2,fh+1.3,z); }); }
   // 一樓中間的樓梯間（依實景）：從北面走廊往南走進去，右邊（西）一道往南爬的樓梯到半層平台，再折回往北上二樓；
   // 左邊（東）在第二段樓梯底下是往地下室的樓梯，用三角錐和黃黑橫桿擋起來；中間一根白色方柱，右牆上一片深色百葉
@@ -2214,7 +2278,7 @@ BUILDINGS.forEach(b=>{
     const V=(x,y,z)=>new THREE.Vector3(x,y,z);
     // 牆面（兩側、底牆）：一、二樓都是白牆，一樓牆腳一條深咖啡色踢腳板
     bx(hx0,hx0+.04,.1,fh+.1,zc0,hzS,wallW); bx(hx1-.04,hx1,.1,fh+.1,zc0,hzS,wallW); bx(hx0,hx1,.1,fh+.1,hzS-.04,hzS,wallW);
-    bx(hx0,hx0+.04,fh+.1,2*fh+.1,z1,hzS,wallW,2); bx(hx1-.04,hx1,fh+.1,2*fh+.1,z1,hzS,wallW,2); bx(hx0,hx1,fh+.1,2*fh+.1,hzS-.04,hzS,wallW,2);
+    bx(hx0,hx0+.04,fh+.1,2*fh+.1,z1+2.77,hzS,wallW,2); bx(hx1-.04,hx1,fh+.1,2*fh+.1,z1+2.77,hzS,wallW,2);   // 二樓兩側牆從教室退縮線開始，前面讓給走廊 bx(hx0,hx1,fh+.1,2*fh+.1,hzS-.04,hzS,wallW,2);
     bx(hx0,hx1,2*fh+.02,2*fh+.1,z1,hzS,wallW,2);   // 樓梯井頂上的白色天花
     bx(hx0+.04,hx0+.06,y0,y0+.12,zc0,zA,brown); bx(hx1-.06,hx1-.04,y0,y0+.12,zc0,zA,brown);
     // 地板（和走廊同樣的磨石子）
@@ -2309,7 +2373,7 @@ BUILDINGS.forEach(b=>{
     putP(new THREE.Mesh(new THREE.BoxGeometry(wd+.2,.25,wb2-wb1+.2), white),2).position.set(wx-.1,wy0-.12,(wb1+wb2)/2); }
   // 公布欄那一角的二樓（依實景）：貼著西牆一條二樓走廊，從二樓橫走廊往南接到日本柱，日本柱就在它的東南角；
   // 朝穿堂那面是淺灰色樑帶加橘色磁磚欄牆與不鏽鋼扶手，南端只有一小段不鏽鋼直條欄杆；公布欄在它底下
-  { const za=z1+2.4+1.2, zs=z2-.9, xe=g1+2.1,   /* 北端接在二樓橫走廊（澳洲柱上方）南緣 */ edgeM=mat('#d3d8de'), tileM=mat('#ecba78',{emissive:'#3a2810'}), steel=mat('#c9cdcf',{metalness:.5});
+  { const za=z1+2.4+.48, zs=z2-.9, xe=g1+2.1,   /* 北端接在二樓橫走廊（澳洲柱上方）南緣 */ edgeM=mat('#d3d8de'), tileM=mat('#ecba78',{emissive:'#3a2810'}), steel=mat('#c9cdcf',{metalness:.5});
     putP(new THREE.Mesh(new THREE.BoxGeometry(xe-g1,.6,zs-za), edgeM),2).position.set((g1+xe)/2,fh-.1,(za+zs)/2);
     const ceilB=new THREE.Mesh(new THREE.PlaneGeometry(xe-g1,zs-za), mat('#efeee8')); ceilB.rotation.x=Math.PI/2; ceilB.position.set((g1+xe)/2,fh-.41,(za+zs)/2); b.group.add(ceilB);
     putP(new THREE.Mesh(new THREE.BoxGeometry(.22,1.05,zs-za), tileM),2).position.set(xe-.11,fh+.72,(za+zs)/2);          // 東緣欄牆
@@ -2394,8 +2458,9 @@ BUILDINGS.forEach(b=>{
       for(let f=2; f<=b.floors; f++){ const y=(f-1)*fh+.1;
         const sl=new THREE.Mesh(new THREE.BoxGeometry(w,.3,dep), white); sl.position.set(cxm,y,zc); put(sl,f);
         const bm=new THREE.Mesh(new THREE.BoxGeometry(w,.55,.25), white); bm.position.set(cxm,y-.2,z1-dep); put(bm,f-1);
-        const pr=new THREE.Mesh(new THREE.BoxGeometry(w,.85,.18), orange); pr.position.set(cxm,y+.6,z1-dep+.05); put(pr,f);
-        const cap=new THREE.Mesh(new THREE.BoxGeometry(w,.08,.3), white); cap.position.set(cxm,y+1.07,z1-dep+.05); put(cap,f); }
+        const [x4]=P(1118.6,0), xs2=f===2?P(1071.14,0)[0]:xs, wp=x4-xs2, cxp=(xs2+x4)/2;   /* 文化走廊那段也沒有矮牆：二樓直接接文化走廊二樓 */   // 第四棟以東沒有矮牆：和第四棟的走廊直接相通（依實景）
+        const pr=new THREE.Mesh(new THREE.BoxGeometry(wp,.85,.18), orange); pr.position.set(cxp,y+.6,z1-dep+.05); put(pr,f);
+        const cap=new THREE.Mesh(new THREE.BoxGeometry(wp,.08,.3), white); cap.position.set(cxp,y+1.07,z1-dep+.05); put(cap,f); }
       const top=new THREE.Mesh(new THREE.BoxGeometry(w,.6,dep), white); top.position.set(cxm,H-.2,zc); put(top,b.floors);
       { const pl=new THREE.Mesh(new THREE.BoxGeometry(.9,H+.6,.9), white); pl.position.set((P(1076.5,0)[0]+1.6),(H+.6)/2,z1-dep+.2); put(pl,1); }   // 穿堂西北角那根，和日本柱、美國柱對齊
       for(let x=xs+1; x<=x2-1; x+=7.5){ if(x>g1-6.7 && x<g2+.8) continue; if(x<xs+2) continue; /* 文化走廊接進來那一格沒有大柱（依實景） */ const px=x;   /* 穿堂西邊那根移進穿堂，和灰色圓柱對齊（依實景） */ const pl=new THREE.Mesh(new THREE.BoxGeometry(.9,H+.6,.9), white); pl.position.set(px,(H+.6)/2,z1-dep+.2); put(pl,1); }
@@ -2470,7 +2535,9 @@ BUILDINGS.forEach(b=>{
     // 文化走廊旁（依籃球場實景）：文化走廊南端西側一塊灰白色量體，二樓以上是實牆，朝籃球場（西面）開三道細長直窗；
     // 一樓底下架空：北邊一根角柱和一段白色實牆，中間是往東爬的不鏽鋼扶手樓梯，南邊一道白色矮牆接到第一棟，矮牆上方有一片小雨遮
     { const [ma]=P(1061.9,0), [mb]=P(1071.29,0), [,mzA]=P(0,498.9), bw1=1.25,   /* 西面和文化走廊二樓牆面切齊（依實景） */   /* 量體往東蓋過文化走廊南端，二樓以上把文化走廊的盡頭包進去（依俯視與籃球場實景） */ mz2=z1, yb=RISE+fh, mh=H+RISE+.3, W=mz2-mzA, wM=mat('#e4e3dc',{roughness:.95}), dark=mat('#2d3236'), frM=mat('#f2f1ec');
-      put(new THREE.Mesh(new THREE.BoxGeometry(mb-ma,mh-yb,W), wM),2).position.set((ma+mb)/2,(yb+mh)/2,(mzA+mz2)/2);
+      { const yP=yb+fh; put(new THREE.Mesh(new THREE.BoxGeometry(mb-ma,mh-yP,W), wM),2).position.set((ma+mb)/2,(yP+mh)/2,(mzA+mz2)/2);   // 三樓以上實心
+        [[ma,ma+.4],[mb-.4,mb]].forEach(([xa,xb])=>put(new THREE.Mesh(new THREE.BoxGeometry(xb-xa,fh,W), wM),2).position.set((xa+xb)/2,yb+fh/2,(mzA+mz2)/2));   // 二樓只剩兩側牆，中間是文化走廊二樓接第一棟二樓走廊的通道
+        put(new THREE.Mesh(new THREE.BoxGeometry(mb-ma-.8,.3,W), mat('#d9d6cc')),2).position.set((ma+mb)/2,yb+.1,(mzA+mz2)/2); }
       put(new THREE.Mesh(new THREE.BoxGeometry(mb-ma+.1,.35,W+.1), wM),2).position.set((ma+mb)/2,yb+.17,(mzA+mz2)/2);   // 二樓樓板邊的橫樑
       [.25,.43,.6].forEach(u=>{ const z=mzA+W*u;
         const fr=new THREE.Mesh(new THREE.PlaneGeometry(.55,1.7), frM); fr.rotation.y=-Math.PI/2; fr.position.set(ma-.015,yb+1.9,z); put(fr,2);
@@ -2716,7 +2783,13 @@ const walks=[]; walks.upper=[];
     // 二樓
     const t=winTex.clone(); t.needsUpdate=true; t.repeat.set(len/8,1);
     const wm=new THREE.MeshStandardMaterial({map:t,roughness:.8}), pm=mat('#e8c7bd');
-    const up=new THREE.Mesh(new THREE.BoxGeometry(w,3.2,len), [wm,wm,pm,mat('#d9d4c8'),pm,pm]); up.position.set(cx,FH+1.7,cz); g.add(up); walks.upper.push(up);
+    // 二樓是可以走的走廊（依實景，和第一棟二樓走廊相通）：兩側窗牆、樓板、天花
+    { const inM=mat('#ecebe4'), T=.15, y0=FH+.1, y1=FH+3.3;
+      [[xa+T/2,[wm,wm,pm,pm,pm,pm]],[xb-T/2,[wm,wm,pm,pm,pm,pm]]].forEach(([x,ms])=>{ const m=new THREE.Mesh(new THREE.BoxGeometry(T,y1-y0,len), ms); m.position.set(x,(y0+y1)/2,cz); g.add(m); walks.upper.push(m); });
+      const fl=new THREE.Mesh(new THREE.BoxGeometry(w-2*T,.3,len), mat('#d9d6cc')); fl.position.set(cx,y0,cz); g.add(fl); walks.upper.push(fl);
+      const tz=new THREE.Mesh(new THREE.PlaneGeometry(w-2*T,len), new THREE.MeshStandardMaterial({map:terrazzoTex(w-2*T,len),roughness:.4})); tz.rotation.x=-Math.PI/2; tz.position.set(cx,y0+.155,cz); g.add(tz); walks.upper.push(tz);
+      const ce=new THREE.Mesh(new THREE.BoxGeometry(w,.2,len), [pm,pm,mat('#d9d4c8'),mat('#efeee8'),pm,pm]); ce.position.set(cx,y1-.1,cz); g.add(ce); walks.upper.push(ce);
+      const ne=new THREE.Mesh(new THREE.BoxGeometry(w,y1-y0,.15), pm); ne.position.set(cx,(y0+y1)/2,za+.075); g.add(ne); walks.upper.push(ne); }   // 北端接第三棟（實牆）
     // 紅色斜屋頂（往西側籃球場傾斜）
     const roof=new THREE.Mesh(new THREE.BoxGeometry(w+1.6,.18,len+.6), mat('#c84a30',{roughness:.55})); roof.position.set(cx-.2,FH+3.75,cz); roof.rotation.z=.22; g.add(roof); walks.upper.push(roof);
     const gut=new THREE.Mesh(new THREE.BoxGeometry(.18,.18,len+.6), mat('#b9bcbc')); gut.position.set(xa-.7,FH+3.55,cz); g.add(gut); walks.upper.push(gut);
